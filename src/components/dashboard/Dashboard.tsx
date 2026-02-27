@@ -4,10 +4,15 @@ import { stages, growthMindsetMessages } from "../../data/curriculum";
 import { useAppStore } from "../../store/useAppStore";
 import StageCard from "../stages/StageCard";
 
-export default function Dashboard() {
+interface DashboardProps {
+  onOpenIdentity: () => void;
+}
+
+export default function Dashboard({ onOpenIdentity }: DashboardProps) {
   const setCurrentStage = useAppStore((s) => s.setCurrentStage);
   const stageProgress = useAppStore((s) => s.stages);
   const streak = useAppStore((s) => s.streak);
+  const assessmentCompleted = useAppStore((s) => s.assessmentState.completed);
   const [confirmStage, setConfirmStage] = useState<number | null>(null);
   const [quoteIndex, setQuoteIndex] = useState(0);
 
@@ -19,7 +24,6 @@ export default function Dashboard() {
   }, []);
 
   function handleStageClick(stageId: number) {
-    // Check if previous stages are complete
     const previousIncomplete = stages
       .filter((s) => s.id < stageId)
       .some((s) => !stageProgress[s.id]?.completed);
@@ -44,6 +48,41 @@ export default function Dashboard() {
 
   return (
     <div className="p-4 sm:p-6 max-w-2xl mx-auto space-y-6">
+      {/* Assessment Banner */}
+      {!assessmentCompleted && (
+        <motion.button
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          onClick={onOpenIdentity}
+          className="w-full bg-[#FBF5E6] border border-[#BC9C45]/30 rounded-2xl p-4 text-left hover:border-[#BC9C45]/60 transition-colors min-h-[44px]"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-[#BC9C45]/15 rounded-xl flex items-center justify-center shrink-0">
+              <span className="text-lg">{"\u{1F9E0}"}</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-navy text-sm">Complete your assessment to personalize your training</p>
+              <p className="text-xs text-warm-gray mt-0.5">12 minutes {"\u00B7"} 40 questions {"\u00B7"} Personal Operating Playbook</p>
+            </div>
+            <svg className="w-4 h-4 text-[#BC9C45] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
+        </motion.button>
+      )}
+
+      {assessmentCompleted && (
+        <motion.button
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          onClick={onOpenIdentity}
+          className="w-full flex items-center gap-2 justify-center py-2 text-sm text-[#BC9C45] hover:text-[#a8893d] transition-colors min-h-[44px]"
+        >
+          <span>{"\u{1F451}"}</span>
+          <span className="font-medium">View My Profile</span>
+        </motion.button>
+      )}
+
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -51,7 +90,7 @@ export default function Dashboard() {
         <h1 className="text-2xl font-bold text-navy mb-1">Your AI Journey</h1>
         <p className="text-sm text-warm-gray">
           {totalCompleted} of 25 tasks completed
-          {streak.currentStreak > 0 && ` \u{00B7} ${streak.currentStreak} day streak`}
+          {streak.currentStreak > 0 && ` {"\u00B7"} ${streak.currentStreak} day streak`}
         </p>
       </motion.div>
 

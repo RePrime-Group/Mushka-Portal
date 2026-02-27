@@ -52,3 +52,56 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #a8a29e;
 }
+
+/* Identity Engine styles */
+.ie-progress-bar {
+  height: 4px;
+  background: #e5e5e5;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.ie-progress-fill {
+  height: 100%;
+  background: #BC9C45;
+  border-radius: 9999px;
+  transition: width 0.5s ease-out;
+}
+
+.ie-gold-btn {
+  width: 100%;
+  padding: 16px;
+  border-radius: 12px;
+  font-weight: 700;
+  color: white;
+  font-size: 18px;
+  background-color: #BC9C45;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.ie-gold-btn:hover {
+  background-color: #a8893d;
+}
+
+.ie-gold-btn:active {
+  background-color: #9a7e38;
+  transform: scale(0.99);
+}
+
+.ie-feature-pill {
+  display: inline-flex;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #BC9C45;
+  border: 1.5px solid #BC9C45;
+}
+
+.ie-playbook-section {
+  border-left: 4px solid #BC9C45;
+  padding-left: 16px;
+  margin-bottom: 24px;
+}

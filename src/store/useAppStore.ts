@@ -1,10 +1,24 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { AppState, AppActions, StageProgress, TaskProgress } from "./types";
+import type { AppState, AppActions, StageProgress, TaskProgress, ItemResponse, InstrumentScore, DomainScores, ValidityResult, PlaybookSection, AssessmentState, AdaptiveConfig } from "./types";
 import { stages, getTaskXP, celebrationMessages } from "../data/curriculum";
 import { updateStreak } from "../utils/streak";
 import { didTitleChange } from "../utils/xp";
 import { triggerEmail } from "../utils/email";
+
+const initialAssessmentState: AssessmentState = {
+  started: false,
+  completed: false,
+  currentItemIndex: 0,
+  responses: [],
+  scores: {},
+  domainScores: null,
+  validity: null,
+  playbook: null,
+  playbookLoading: false,
+  playbookError: null,
+  emailsSent: false,
+};
 
 function createInitialStages(): Record<number, StageProgress> {
   const result: Record<number, StageProgress> = {};
@@ -61,6 +75,7 @@ export const useAppStore = create<AppState & AppActions>()(
       currentStage: 1,
       celebrationQueue: [],
       programStartEmailSent: false,
+      assessmentState: initialAssessmentState,
 
       login: (email: string) => {
         const state = get();
@@ -227,6 +242,102 @@ export const useAppStore = create<AppState & AppActions>()(
       setCurrentStage: (stageId: number) => set({ currentStage: stageId }),
 
       markProgramStartEmailSent: () => set({ programStartEmailSent: true }),
+
+      // Identity Engine actions
+      startAssessment: () => {
+        set({
+          assessmentState: {
+            ...initialAssessmentState,
+            started: true,
+          },
+        });
+      },
+
+      recordResponse: (response: ItemResponse) => {
+        const state = get();
+        const responses = [...state.assessmentState.responses, response];
+        set({
+          assessmentState: {
+            ...state.assessmentState,
+            responses,
+            currentItemIndex: state.assessmentState.currentItemIndex + 1,
+          },
+        });
+      },
+
+      setAssessmentScores: (scores: Record<string, InstrumentScore>, domainScores: DomainScores, validity: ValidityResult) => {
+        const state = get();
+        set({
+          assessmentState: {
+            ...state.assessmentState,
+            scores,
+            domainScores,
+            validity,
+            completed: true,
+          },
+        });
+      },
+
+      setPlaybook: (playbook: PlaybookSection[]) => {
+        const state = get();
+        set({
+          assessmentState: {
+            ...state.assessmentState,
+            playbook,
+            playbookLoading: false,
+            playbookError: null,
+          },
+        });
+      },
+
+      setPlaybookLoading: (loading: boolean) => {
+        const state = get();
+        set({
+          assessmentState: {
+            ...state.assessmentState,
+            playbookLoading: loading,
+          },
+        });
+      },
+
+      setPlaybookError: (error: string | null) => {
+        const state = get();
+        set({
+          assessmentState: {
+            ...state.assessmentState,
+            playbookError: error,
+            playbookLoading: false,
+          },
+        });
+      },
+
+      markAssessmentEmailsSent: () => {
+        const state = get();
+        set({
+          assessmentState: {
+            ...state.assessmentState,
+            emailsSent: true,
+          },
+        });
+      },
+
+      getAdaptiveConfig: (): AdaptiveConfig | null => {
+        const { domainScores, scores } = get().assessmentState;
+        if (!domainScores) return null;
+
+        return {
+          showTemplates: domainScores.challengeLevel < 50,
+          showExtensionQuestions: domainScores.challengeLevel > 70,
+          scaffoldingLevel: domainScores.challengeLevel < 30 ? 'maximum' : domainScores.challengeLevel < 60 ? 'standard' : 'minimal',
+          checkInFrequency: domainScores.structureNeed > 70 ? 'frequent' : domainScores.structureNeed > 40 ? 'standard' : 'minimal',
+          progressIndicatorDensity: domainScores.structureNeed > 60 ? 'high' : 'standard',
+          milestoneSpacing: domainScores.structureNeed > 70 ? 'short' : 'standard',
+          skipBasicOrientation: domainScores.startingPoint > 60,
+          compressStage1: domainScores.startingPoint > 80,
+          technicalVocabulary: scores.tech_comfort?.level === 'high' ? 'full' : scores.tech_comfort?.level === 'moderate' ? 'standard' : 'simplified',
+          domainInsecurity: (scores.ngse?.percentile ?? 50) - (scores.mslq_se?.percentile ?? 50) > 25,
+        };
+      },
     }),
     {
       name: "mushka-portal-storage",
