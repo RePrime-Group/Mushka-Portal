@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import confetti from "canvas-confetti";
 import { useAppStore } from "../../store/useAppStore";
@@ -43,6 +43,15 @@ export default function ResultsView({ onBackToDashboard, onRetryPlaybook }: Resu
   // Find "My Profile" section for narrative summary
   const profileSection = playbook?.find((s) => s.title === "My Profile");
   const otherSections = playbook?.filter((s) => s.title !== "My Profile") || [];
+
+  // Accordion state — only one playbook section open at a time
+  const [openSection, setOpenSection] = useState<string | null>(
+    otherSections[0]?.title ?? null
+  );
+
+  function toggleSection(title: string) {
+    setOpenSection((prev) => (prev === title ? null : title));
+  }
 
   return (
     <div className="min-h-dvh bg-cream app-shell">
@@ -118,7 +127,7 @@ export default function ResultsView({ onBackToDashboard, onRetryPlaybook }: Resu
             {onRetryPlaybook && (
               <button
                 onClick={onRetryPlaybook}
-                className="text-sm font-semibold text-navy border-2 border-navy rounded-xl px-5 py-2.5 min-h-11 hover:bg-navy hover:text-white transition-colors"
+                className="text-sm font-semibold text-navy border-2 border-navy rounded-xl px-5 py-2.5 min-h-11 hover:bg-navy hover:text-white transition-colors cursor-pointer"
               >
                 Retry
               </button>
@@ -135,7 +144,12 @@ export default function ResultsView({ onBackToDashboard, onRetryPlaybook }: Resu
           >
             <h2 className="font-semibold text-navy text-lg md:text-xl mb-4">Personal Operating Playbook</h2>
             {otherSections.map((section) => (
-              <PlaybookSection key={section.title} section={section} defaultOpen={true} />
+              <PlaybookSection
+                key={section.title}
+                section={section}
+                open={openSection === section.title}
+                onToggle={() => toggleSection(section.title)}
+              />
             ))}
           </motion.div>
         )}
@@ -149,7 +163,7 @@ export default function ResultsView({ onBackToDashboard, onRetryPlaybook }: Resu
         >
           <button
             onClick={onBackToDashboard}
-            className="ie-gold-btn min-h-[52px]"
+            className="ie-gold-btn min-h-[52px] cursor-pointer"
           >
             Continue to Training
           </button>

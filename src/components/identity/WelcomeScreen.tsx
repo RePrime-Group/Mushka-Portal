@@ -36,17 +36,10 @@ export default function WelcomeScreen({ onStart }: WelcomeScreenProps) {
             <span className="ie-feature-pill">Personalized Playbook</span>
           </div>
 
-          <button
-            onClick={onStart}
-            className="ie-gold-btn min-h-[52px] mb-6"
-          >
-            Start My Assessment
-          </button>
-
-          <div>
+          <div className="mb-6">
             <button
               onClick={() => setDisclaimerOpen(!disclaimerOpen)}
-              className="text-xs text-warm-gray hover:text-stone-600 transition-colors flex items-center gap-1 mx-auto min-h-[44px]"
+              className="text-xs text-warm-gray hover:text-stone-600 transition-colors flex items-center gap-1 mx-auto min-h-[44px] cursor-pointer"
             >
               <svg
                 className={`w-3 h-3 transition-transform ${disclaimerOpen ? "rotate-180" : ""}`}
@@ -54,7 +47,7 @@ export default function WelcomeScreen({ onStart }: WelcomeScreenProps) {
               >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
               </svg>
-              About this assessment
+              Important Information
             </button>
 
             <AnimatePresence>
@@ -68,35 +61,34 @@ export default function WelcomeScreen({ onStart }: WelcomeScreenProps) {
                 >
                   <div className="text-left text-[11px] text-warm-gray leading-relaxed bg-white rounded-xl p-4 mt-2 space-y-2">
                     <p>
-                      This assessment uses validated psychometric instruments adapted for educational purposes.
-                      It is not a clinical diagnostic tool and does not measure intelligence, aptitude, or personality disorders.
+                      This assessment is for personal development and self-awareness only.
+                      It is not a clinical or diagnostic evaluation. Results are not a substitute
+                      for professional psychological evaluation.
                     </p>
                     <p>
-                      Your responses are used solely to personalize your AI training experience within the Mushka Portal.
-                      Results are shared only with your designated training team at RePrime Group.
+                      Your responses reflect self-reported perceptions and have inherent limitations.
+                      Results will not be used for employment decisions or to affect the terms and
+                      conditions of your employment at RePrime Group.
                     </p>
                     <p>
-                      You may skip any question or stop the assessment at any time. Your participation is voluntary.
-                      There are no right or wrong answers on the self-report items.
-                    </p>
-                    <p>
-                      The knowledge-based questions assess prior familiarity, not ability. Your score reflects current
-                      exposure, not potential.
-                    </p>
-                    <p>
-                      All data is stored locally on your device and transmitted securely to Vercel-hosted serverless functions.
-                      No data is sold or shared with third parties.
-                    </p>
-                    <p>
-                      Assessment instruments include the New General Self-Efficacy Scale (Chen, Gully & Eden, 2001),
-                      MSLQ Self-Efficacy subscale (Pintrich et al., 1991), Short Grit Scale (Duckworth & Quinn, 2009),
-                      and MSLQ Metacognitive Self-Regulation items (Pintrich et al., 1991), adapted for this training context.
+                      Your responses are confidential and will be shared only with your development
+                      team at RePrime Group. This assessment uses established psychometric instruments
+                      with published scoring methods, including the New General Self-Efficacy Scale
+                      (Chen, Gully &amp; Eden, 2001), the Motivated Strategies for Learning Questionnaire
+                      (Pintrich et al., 1991), and the Short Grit Scale (Duckworth &amp; Quinn, 2009).
                     </p>
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
+
+          <button
+            onClick={onStart}
+            className="ie-gold-btn min-h-[52px] cursor-pointer"
+          >
+            Start My Assessment
+          </button>
         </motion.div>
       </div>
     </div>

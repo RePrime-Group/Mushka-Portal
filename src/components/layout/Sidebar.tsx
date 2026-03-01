@@ -41,7 +41,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
     <>
       {/* Overlay */}
       {open && (
-        <div className="fixed inset-0 bg-black/30 z-40 lg:hidden" onClick={onClose} />
+        <div className="fixed inset-0 bg-black/30 z-40 lg:hidden cursor-pointer" onClick={onClose} />
       )}
 
       {/* Sidebar */}
@@ -67,7 +67,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           <button
             onClick={handleDashboard}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all min-h-[44px] ${
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all min-h-[44px] cursor-pointer ${
               currentStage === 0
                 ? "bg-white/10 text-white"
                 : "text-white/60 hover:bg-white/5 hover:text-white"
@@ -95,7 +95,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
               <button
                 key={stage.id}
                 onClick={() => handleStageClick(stage.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all min-h-[44px] ${
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all min-h-[44px] cursor-pointer ${
                   isActive
                     ? "bg-white/10 text-white"
                     : "text-white/60 hover:bg-white/5 hover:text-white"
@@ -119,7 +119,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         <div className="p-4 border-t border-white/10">
           <button
             onClick={logout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white/40 hover:text-white/60 hover:bg-white/5 transition-all min-h-[44px]"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white/40 hover:text-white/60 hover:bg-white/5 transition-all min-h-[44px] cursor-pointer"
           >
             <span className="text-lg">{"\u{1F6AA}"}</span>
             <span className="text-sm">Sign Out</span>

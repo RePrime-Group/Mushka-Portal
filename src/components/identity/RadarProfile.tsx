@@ -4,6 +4,7 @@ import {
   RadarChart,
   PolarGrid,
   PolarAngleAxis,
+  PolarRadiusAxis,
   ResponsiveContainer,
 } from "recharts";
 import type { InstrumentScore } from "../../store/types";
@@ -121,6 +122,13 @@ export default function RadarProfile({ scores }: RadarProfileProps) {
             dataKey="axis"
             tick={{ fontSize: 10, fill: "#78716c" }}
           />
+          <PolarRadiusAxis
+            angle={30}
+            domain={[0, 100]}
+            ticks={[25, 50, 75, 100]}
+            tick={{ fontSize: 8, fill: "#a8a29e" }}
+            axisLine={false}
+          />
           {/* Population average polygon — spec: navy at 0.15 opacity */}
           <Radar
             name="Average"
@@ -148,7 +156,7 @@ export default function RadarProfile({ scores }: RadarProfileProps) {
           <span className="text-[11px] text-warm-gray">You</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-3 h-0.5 bg-[#0E3470] opacity-50" style={{ borderTop: "1.5px dashed #0E3470" }} />
+          <div className="w-3 h-0.5 bg-navy opacity-50" style={{ borderTop: "1.5px dashed #0E3470" }} />
           <span className="text-[11px] text-warm-gray">Population Average</span>
         </div>
       </div>

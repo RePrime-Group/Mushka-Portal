@@ -140,13 +140,13 @@ export default function Dashboard({ onOpenIdentity }: DashboardProps) {
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirmStage(null)}
-                className="flex-1 py-2.5 border border-stone-200 rounded-xl text-sm font-medium text-navy hover:bg-stone-50 transition-colors min-h-[44px]"
+                className="flex-1 py-2.5 border border-stone-200 rounded-xl text-sm font-medium text-navy hover:bg-stone-50 transition-colors min-h-[44px] cursor-pointer"
               >
                 Go back
               </button>
               <button
                 onClick={handleConfirm}
-                className="flex-1 py-2.5 bg-navy text-white rounded-xl text-sm font-medium hover:bg-navy-light transition-colors min-h-[44px]"
+                className="flex-1 py-2.5 bg-navy text-white rounded-xl text-sm font-medium hover:bg-navy-light transition-colors min-h-[44px] cursor-pointer"
               >
                 Jump to Stage {confirmStage}
               </button>

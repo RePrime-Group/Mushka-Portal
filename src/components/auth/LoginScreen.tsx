@@ -96,7 +96,7 @@ export default function LoginScreen() {
 
             <button
               type="submit"
-              className="w-full py-3 bg-navy text-white rounded-xl font-medium hover:bg-navy-light active:scale-[0.98] transition-all min-h-[44px]"
+              className="w-full py-3 bg-navy text-white rounded-xl font-medium hover:bg-navy-light active:scale-[0.98] transition-all min-h-[44px] cursor-pointer"
             >
               Sign In
             </button>
