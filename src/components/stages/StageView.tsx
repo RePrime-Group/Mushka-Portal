@@ -15,6 +15,7 @@ export default function StageView({ stageId }: StageViewProps) {
   const stage = stages.find((s) => s.id === stageId);
   const stageProgress = useAppStore((s) => s.stages[stageId]);
   const submitReflection = useAppStore((s) => s.submitReflection);
+  const setCurrentStage = useAppStore((s) => s.setCurrentStage);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
@@ -86,7 +87,20 @@ export default function StageView({ stageId }: StageViewProps) {
         />
       )}
 
-      {feedback && <FeedbackDisplay feedback={feedback} stageId={stageId} />}
+      {feedback && (
+        <>
+          <FeedbackDisplay feedback={feedback} stageId={stageId} />
+          <motion.button
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            onClick={() => setCurrentStage(stageId < 5 ? stageId + 1 : 0)}
+            className="w-full py-3 bg-navy text-white rounded-2xl font-medium hover:bg-navy-light active:scale-[0.98] transition-all min-h-11 cursor-pointer"
+          >
+            {stageId < 5 ? `Continue to Stage ${stageId + 1}` : "Back to Dashboard"}
+          </motion.button>
+        </>
+      )}
 
       {reflectionSubmitted && !feedback && (
         <div className="bg-white rounded-2xl border border-gold/20 p-5 shadow-sm text-center">

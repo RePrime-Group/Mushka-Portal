@@ -49,9 +49,9 @@ export default function IdentityEngine({ onComplete }: IdentityEngineProps) {
     ) => {
       setPlaybookLoading(true);
 
-      // Hard timeout — Claude haiku should reply well under 25 s
+      // Hard timeout — give the LLM up to 2 minutes
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 25000);
+      const timeout = setTimeout(() => controller.abort(), 120000);
 
       try {
         const res = await fetch("/api/playbook", {

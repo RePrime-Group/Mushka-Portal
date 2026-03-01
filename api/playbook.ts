@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { log } from "./_logger";
 
 const SYSTEM_PROMPT = `<identity>
 You are a psychometric interpretation specialist working for RePrime Group, a commercial real estate investment firm. You produce Personal Operating Playbooks that translate assessment data into actionable self-knowledge. Your tone is warm, professional, and strengths-based. You speak as a trusted advisor, not a clinical evaluator. You use clear, direct language appropriate for a 19-year-old college student who is intelligent and perceptive.
@@ -41,13 +42,17 @@ Section 5 - Growth Edge: Identify 2-3 specific development areas suggested by th
 
 export default async function handler(req: any, res: any) {
   if (req.method !== "POST") {
+    log("playbook", "method_not_allowed", { method: req.method }, "WARN");
     return res.status(405).send("Method not allowed");
   }
+
+  log("playbook", "request_received", { model: "claude-haiku-4-5", max_tokens: 4000, temperature: 0.3 });
 
   try {
     const body = req.body;
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+    const t0 = Date.now();
     const message = await client.messages.create({
       model: "claude-haiku-4-5",
       max_tokens: 4000,
@@ -59,13 +64,22 @@ export default async function handler(req: any, res: any) {
       }],
     });
 
+    const durationMs = Date.now() - t0;
+    log("playbook", "llm_response", {
+      durationMs,
+      stop_reason: message.stop_reason,
+      input_tokens: message.usage.input_tokens,
+      output_tokens: message.usage.output_tokens,
+    });
+
     const responseText = message.content[0].type === "text" ? message.content[0].text : "";
     const cleaned = responseText.replace(/```json\n?|```\n?/g, "").trim();
     const playbook = JSON.parse(cleaned);
 
+    log("playbook", "success", { sections: playbook.sections?.length ?? 0 });
     return res.status(200).json(playbook);
   } catch (err: any) {
-    console.error("Playbook generation failed:", err?.message || err);
+    log("playbook", "error", { message: err?.message }, "ERROR");
     return res.status(500).json({ error: "Playbook generation failed", detail: err?.message });
   }
 }

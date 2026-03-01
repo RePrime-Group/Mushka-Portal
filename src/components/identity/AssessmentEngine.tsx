@@ -1,11 +1,9 @@
-import { useMemo, useEffect, useRef, useState } from "react";
-import { Model } from "survey-core";
-import { Survey } from "survey-react-ui";
-import { motion } from "motion/react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { useAppStore } from "../../store/useAppStore";
 import { ALL_ITEMS } from "../../data/items";
 import { ROTATION_ORDER } from "../../data/rotationOrder";
-import type { AssessmentItem, ItemResponse } from "../../store/types";
+import type { AssessmentItem, AssessmentOption, ItemResponse } from "../../store/types";
 import ProgressBar from "./ProgressBar";
 import confetti from "canvas-confetti";
 
@@ -17,43 +15,72 @@ for (const item of ALL_ITEMS) itemMap.set(item.id, item);
 const TOTAL_ITEMS = ROTATION_ORDER.length;
 const MIDPOINT = 21;
 
-// ─── Build SurveyJS JSON model ───────────────────────────────────────────────
-// One page per item. SurveyJS handles the page-by-page presentation.
-// Navigation buttons, progress bar, and title are all suppressed —
-// we provide our own custom progress bar and auto-advance logic.
+// ─── Option button ────────────────────────────────────────────────────────────
 
-function buildSurveyJson() {
-  return {
-    showNavigationButtons: "none",
-    showProgressBar: "off",
-    showTitle: false,
-    showCompletedPage: false,
-    questionErrorLocation: "bottom",
-    pages: ROTATION_ORDER.map((itemId, index) => {
-      const item = itemMap.get(itemId)!;
-      const choices = item.options.map((opt) => ({
-        value: opt.value,
-        text: opt.prefix ? `${opt.prefix}   ${opt.label}` : opt.label,
-      }));
-      return {
-        name: `page_${index}`,
-        elements: [
-          {
-            type: "radiogroup",
-            name: itemId,
-            title: item.text,
-            titleLocation: "top",
-            choices,
-            isRequired: false,
-            colCount: 1,
-          },
-        ],
-      };
-    }),
-  };
+interface OptionButtonProps {
+  option: AssessmentOption;
+  selected: boolean;
+  anySelected: boolean;
+  onSelect: () => void;
 }
 
-// ─── Component ───────────────────────────────────────────────────────────────
+function OptionButton({ option, selected, anySelected, onSelect }: OptionButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      disabled={anySelected}
+      className={[
+        "w-full text-left rounded-2xl border-2 px-4 py-4 transition-all duration-150 cursor-pointer",
+        selected
+          ? "border-[#BC9C45] bg-[#FBF5E6]"
+          : anySelected
+          ? "border-stone-200 bg-white opacity-40 cursor-default"
+          : "border-stone-200 bg-white hover:border-[#d4c8a8] hover:bg-stone-50 active:scale-[0.99]",
+      ].join(" ")}
+    >
+      <div className="flex items-center gap-3">
+        {/* Letter badge for knowledge (A/B/C/D) items */}
+        {option.prefix && (
+          <span
+            className={[
+              "shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-colors",
+              selected
+                ? "bg-[#BC9C45] text-white border-[#BC9C45]"
+                : "border-stone-300 text-stone-500",
+            ].join(" ")}
+          >
+            {option.prefix}
+          </span>
+        )}
+
+        <span
+          className={[
+            "text-[15px] leading-snug flex-1",
+            selected ? "text-navy font-semibold" : "text-stone-700",
+          ].join(" ")}
+        >
+          {option.label}
+        </span>
+
+        {/* Checkmark on selected */}
+        {selected && (
+          <svg
+            className="shrink-0 w-5 h-5 text-[#BC9C45]"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2.5}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        )}
+      </div>
+    </button>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 interface AssessmentEngineProps {
   onComplete: () => void;
@@ -64,44 +91,45 @@ export default function AssessmentEngine({ onComplete }: AssessmentEngineProps) 
   const recordResponse = useAppStore((s) => s.recordResponse);
 
   const [showMidpoint, setShowMidpoint] = useState(false);
-  // pageNo drives the ProgressBar; updated whenever the survey advances
-  const [pageNo, setPageNo] = useState(currentItemIndex);
+  // localIndex drives which item is displayed; starts at the store's persisted position
+  const [localIndex, setLocalIndex] = useState(currentItemIndex);
+  const [selected, setSelected] = useState<number | string | null>(null);
 
   const itemStartTime = useRef<number>(performance.now());
   const advanceTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  // Create the model once. Resume at the correct page if mid-assessment.
-  const survey = useMemo(() => {
-    const model = new Model(buildSurveyJson());
-    model.currentPageNo = currentItemIndex;
-    return model;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const currentItem = itemMap.get(ROTATION_ORDER[localIndex])!;
 
+  // Reset selection state each time we move to a new item
   useEffect(() => {
-    const onValueChanged = (sender: Model, options: { name: string; value: number | string }) => {
-      const pageIndex = sender.currentPageNo;
-      const itemId = ROTATION_ORDER[pageIndex];
-      const item = itemMap.get(itemId)!;
-      const responseTimeMs = Math.round(performance.now() - itemStartTime.current);
+    setSelected(null);
+    itemStartTime.current = performance.now();
+  }, [localIndex]);
 
+  const handleSelect = useCallback(
+    (value: number | string) => {
+      if (selected !== null) return; // guard against double-tap
+      setSelected(value);
+
+      const responseTimeMs = Math.round(performance.now() - itemStartTime.current);
       const response: ItemResponse = {
-        itemId,
-        instrumentId: item.instrumentId,
-        value: options.value,
+        itemId: currentItem.id,
+        instrumentId: currentItem.instrumentId,
+        value,
         responseTimeMs,
         timestamp: new Date().toISOString(),
-        rotationIndex: pageIndex,
+        rotationIndex: localIndex,
       };
 
-      const delay = item.type === "knowledge" ? 600 : 400;
-
+      // Knowledge items auto-advance slightly slower so the selection registers visually
+      const delay = currentItem.type === "knowledge" ? 600 : 400;
       if (advanceTimeout.current) clearTimeout(advanceTimeout.current);
 
       advanceTimeout.current = setTimeout(() => {
         recordResponse(response);
 
-        if (pageIndex === MIDPOINT - 1) {
+        if (localIndex === MIDPOINT - 1) {
+          // Midpoint celebration
           setShowMidpoint(true);
           confetti({
             particleCount: 50,
@@ -111,63 +139,90 @@ export default function AssessmentEngine({ onComplete }: AssessmentEngineProps) 
           });
           setTimeout(() => {
             setShowMidpoint(false);
-            if (pageIndex + 1 >= TOTAL_ITEMS) {
+            if (localIndex + 1 >= TOTAL_ITEMS) {
               onComplete();
             } else {
-              sender.nextPage();
-              itemStartTime.current = performance.now();
-              setPageNo(sender.currentPageNo);
+              setLocalIndex(localIndex + 1);
             }
           }, 2500);
-        } else if (pageIndex + 1 >= TOTAL_ITEMS) {
+        } else if (localIndex + 1 >= TOTAL_ITEMS) {
           onComplete();
         } else {
-          sender.nextPage();
-          itemStartTime.current = performance.now();
-          setPageNo(sender.currentPageNo);
+          setLocalIndex(localIndex + 1);
         }
       }, delay);
-    };
+    },
+    [selected, currentItem, localIndex, recordResponse, onComplete]
+  );
 
-    survey.onValueChanged.add(onValueChanged);
+  // Cleanup timeout on unmount
+  useEffect(() => {
     return () => {
-      survey.onValueChanged.remove(onValueChanged);
       if (advanceTimeout.current) clearTimeout(advanceTimeout.current);
     };
-  }, [survey, recordResponse, onComplete]);
+  }, []);
 
-  // ── Midpoint celebration ──────────────────────────────────────────────────
+  // ── Midpoint celebration screen ───────────────────────────────────────────
 
   if (showMidpoint) {
     return (
-      <div className="min-h-dvh bg-cream flex items-center justify-center px-4 app-shell">
+      <div className="min-h-dvh bg-cream flex items-center justify-center px-6 app-shell">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="text-center max-w-sm"
+          className="text-center max-w-xs"
         >
-          <p className="text-lg text-navy font-medium leading-relaxed">
-            Halfway there. You're doing something most people never bother to do.
+          <div className="text-4xl mb-4">🎯</div>
+          <p className="text-xl font-semibold text-navy leading-relaxed mb-2">
+            Halfway there.
+          </p>
+          <p className="text-base text-stone-600 leading-relaxed">
+            You're doing something most people never bother to do.
           </p>
         </motion.div>
       </div>
     );
   }
 
-  // ── Main render ───────────────────────────────────────────────────────────
+  // ── Main assessment render ────────────────────────────────────────────────
 
   return (
-    <div className="min-h-dvh bg-cream flex flex-col app-shell survey-host">
-      {/* Custom progress bar — SurveyJS built-in is suppressed */}
-      <div className="px-4 pt-4 pb-3 sm:px-6 md:px-8 max-w-2xl mx-auto w-full">
-        <ProgressBar current={pageNo + 1} total={TOTAL_ITEMS} />
+    <div className="min-h-dvh bg-cream flex flex-col app-shell">
+      {/* Progress bar */}
+      <div className="px-3 pt-4 pb-3 sm:px-6 max-w-lg mx-auto w-full">
+        <ProgressBar current={localIndex + 1} total={TOTAL_ITEMS} />
       </div>
 
-      {/* SurveyJS renders one page (one item) at a time */}
-      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 md:px-8 pb-8">
-        <div className="w-full max-w-md md:max-w-xl lg:max-w-2xl">
-          <Survey model={survey} />
-        </div>
+      {/* Question area */}
+      <div className="flex-1 flex items-center justify-center px-3 sm:px-5 pb-8">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={localIndex}
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -18 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="w-full max-w-lg"
+          >
+            {/* Question text */}
+            <p className="text-lg sm:text-xl font-semibold text-navy text-center leading-relaxed mb-7 px-1">
+              {currentItem.text}
+            </p>
+
+            {/* Answer options */}
+            <div className="space-y-2.5">
+              {currentItem.options.map((opt) => (
+                <OptionButton
+                  key={opt.value}
+                  option={opt}
+                  selected={selected === opt.value}
+                  anySelected={selected !== null}
+                  onSelect={() => handleSelect(opt.value)}
+                />
+              ))}
+            </div>
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );

@@ -1,15 +1,18 @@
 import { Resend } from "resend";
+import { log } from "./_logger";
 
 const TEAM_EMAILS = [
-  "g@reprime.com",
-  "amelia@reprime.com",
-  "dcyg770@gmail.com",
-  "shirel@reprime.com",
-  "steve@reprime.com",
+  "ubaid@impleko.ai",
+  // "g@reprime.com",
+  // "amelia@reprime.com",
+  // "dcyg770@gmail.com",
+  // "shirel@reprime.com",
+  // "steve@reprime.com",
 ];
 
-const MUSHKA_EMAIL = "mushka@gratsiani.com";
-const FROM_ADDRESS = "notifications@reprime.com";
+// const MUSHKA_EMAIL = "mushka@gratsiani.com";
+const MUSHKA_EMAIL = "devsalmansidd@gmail.com";
+const FROM_ADDRESS = "notifications@meetreprime.com";
 
 interface EmailContent {
   teamSubject?: string;
@@ -81,7 +84,8 @@ function getEmailContent(trigger: string, data: any): EmailContent {
 
     case "all-complete":
       return {
-        teamSubject: "🎉 ALL STAGES COMPLETE — SEND $600 NORDSTROM eGIFT + DOMAIN",
+        teamSubject:
+          "🎉 ALL STAGES COMPLETE — SEND $600 NORDSTROM eGIFT + DOMAIN",
         teamBody: `<h2>ALL 5 STAGES COMPLETE!</h2>
 <p>Mushka has completed the entire AI training program.</p>
 <p>Total XP: ${data.totalXP || 11000}</p>
@@ -124,6 +128,7 @@ ${body}
 
 export default async function handler(req: any, res: any) {
   if (req.method !== "POST") {
+    log("send-email", "method_not_allowed", { method: req.method }, "WARN");
     return res.status(405).send("Method not allowed");
   }
 
@@ -132,36 +137,58 @@ export default async function handler(req: any, res: any) {
     const { trigger, ...data } = body;
 
     if (!trigger) {
+      log("send-email", "missing_trigger", {}, "WARN");
       return res.status(400).json({ error: "Missing trigger" });
     }
+
+    log("send-email", "request_received", { trigger });
 
     const resend = new Resend(process.env.RESEND_API_KEY);
     const content = getEmailContent(trigger, data);
     const results: any[] = [];
 
     if (content.teamSubject && content.teamBody) {
+      const t0 = Date.now();
       const teamResult = await resend.emails.send({
         from: FROM_ADDRESS,
         to: TEAM_EMAILS,
         subject: content.teamSubject,
         html: wrapHtml(content.teamBody),
       });
+      log("send-email", "team_email_sent", {
+        trigger,
+        durationMs: Date.now() - t0,
+        to: TEAM_EMAILS,
+        subject: content.teamSubject,
+        id: (teamResult as any)?.data?.id,
+        error: (teamResult as any)?.error ?? null,
+      });
       results.push({ type: "team", result: teamResult });
     }
 
     if (content.mushkaSubject && content.mushkaBody) {
+      const t1 = Date.now();
       const mushkaResult = await resend.emails.send({
         from: FROM_ADDRESS,
         to: [MUSHKA_EMAIL],
         subject: content.mushkaSubject,
         html: wrapHtml(content.mushkaBody),
       });
+      log("send-email", "mushka_email_sent", {
+        trigger,
+        durationMs: Date.now() - t1,
+        to: MUSHKA_EMAIL,
+        subject: content.mushkaSubject,
+        id: (mushkaResult as any)?.data?.id,
+        error: (mushkaResult as any)?.error ?? null,
+      });
       results.push({ type: "mushka", result: mushkaResult });
     }
 
+    log("send-email", "success", { trigger, sent: results.length });
     return res.status(200).json({ sent: results.length, results });
   } catch (err: any) {
-    console.error("Email send failed:", err?.message || err);
+    log("send-email", "error", { message: err?.message }, "ERROR");
     return res.status(500).json({ error: "Email send failed" });
   }
 }

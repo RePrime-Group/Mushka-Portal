@@ -53,6 +53,7 @@ export interface AppActions {
   setPlaybookError: (error: string | null) => void;
   markAssessmentEmailsSent: () => void;
   getAdaptiveConfig: () => AdaptiveConfig | null;
+  resetProgress: () => void;
 }
 
 // ============================================

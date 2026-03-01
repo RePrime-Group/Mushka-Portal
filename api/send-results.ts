@@ -1,8 +1,18 @@
 import { Resend } from "resend";
+import { log } from "./_logger";
 
-const TEAM_EMAILS = ["g@reprime.com", "steve@reprime.com", "amelia@reprime.com", "shirel@reprime.com", "dcyg770@gmail.com"];
-const MUSHKA_EMAIL = "mushka@gratsiani.com";
-const FROM_ADDRESS = "noreply@reprime.com";
+const TEAM_EMAILS = [
+  "ubaid@impleko.ai",
+  // "g@reprime.com",
+  // "amelia@reprime.com",
+  // "dcyg770@gmail.com",
+  // "shirel@reprime.com",
+  // "steve@reprime.com",
+];
+
+// const MUSHKA_EMAIL = "mushka@gratsiani.com";
+const MUSHKA_EMAIL = "devsalmansidd@gmail.com";
+const FROM_ADDRESS = "notifications@meetreprime.com";
 
 function validityEmoji(status: string): string {
   if (status === "green") return "🟢";
@@ -15,10 +25,13 @@ function buildTeamEmail(data: any): string {
 
   const scoreRows = Object.entries(scores as Record<string, any>)
     .map(([key, score]: [string, any]) => {
-      const percentile = score.percentile != null ? `${score.percentile}%` : "N/A (criterion)";
+      const percentile =
+        score.percentile != null ? `${score.percentile}%` : "N/A (criterion)";
       const level = score.level || "";
       const subscales = score.subscales
-        ? Object.entries(score.subscales).map(([k, v]) => `${k}: ${v}`).join(", ")
+        ? Object.entries(score.subscales)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join(", ")
         : "";
       return `<tr>
         <td style="padding:8px;border:1px solid #e5e5e5;font-weight:600;">${key}</td>
@@ -34,10 +47,15 @@ function buildTeamEmail(data: any): string {
     ...((validity.consistencyDetails as string[]) || []),
     ...((validity.infrequencyDetails as string[]) || []),
     ...((validity.fastResponseDetails as string[]) || []),
-  ].map((d: string) => `<li>${d}</li>`).join("");
+  ]
+    .map((d: string) => `<li>${d}</li>`)
+    .join("");
 
   const playbookHtml = (playbook || [])
-    .map((s: any) => `<h3 style="color:#0E3470;margin-top:16px;">${s.title}</h3><p>${s.content}</p>`)
+    .map(
+      (s: any) =>
+        `<h3 style="color:#0E3470;margin-top:16px;">${s.title}</h3><p>${s.content}</p>`,
+    )
     .join("");
 
   const responseTimeSummary = responses
@@ -83,8 +101,16 @@ ${playbookHtml || "<p>Playbook generation pending.</p>"}
 
 export default async function handler(req: any, res: any) {
   if (req.method !== "POST") {
+    log("send-results", "method_not_allowed", { method: req.method }, "WARN");
     return res.status(405).send("Method not allowed");
   }
+
+  log("send-results", "request_received", {
+    validityStatus: req.body?.validity?.status,
+    playbookSections: Array.isArray(req.body?.playbook)
+      ? req.body.playbook.length
+      : 0,
+  });
 
   try {
     const body = req.body;
@@ -92,15 +118,23 @@ export default async function handler(req: any, res: any) {
     const results: any[] = [];
 
     // Team email — FULL DATA
+    const t0 = Date.now();
     const teamResult = await resend.emails.send({
       from: FROM_ADDRESS,
       to: TEAM_EMAILS,
       subject: `📊 Identity Engine Complete — Mushka Gratsiani ${validityEmoji(body.validity?.status || "green")}`,
       html: buildTeamEmail(body),
     });
+    log("send-results", "team_email_sent", {
+      durationMs: Date.now() - t0,
+      to: TEAM_EMAILS,
+      id: (teamResult as any)?.data?.id,
+      error: (teamResult as any)?.error ?? null,
+    });
     results.push({ type: "team", result: teamResult });
 
     // Mushka email — WARM MESSAGE ONLY, zero scores/data
+    const t1 = Date.now();
     const mushkaResult = await resend.emails.send({
       from: FROM_ADDRESS,
       to: [MUSHKA_EMAIL],
@@ -116,11 +150,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;c
 <p style="font-size:12px;color:#999;">Mushka AI Portal — RePrime Group</p>
 </body></html>`,
     });
+    log("send-results", "mushka_email_sent", {
+      durationMs: Date.now() - t1,
+      to: MUSHKA_EMAIL,
+      id: (mushkaResult as any)?.data?.id,
+      error: (mushkaResult as any)?.error ?? null,
+    });
     results.push({ type: "mushka", result: mushkaResult });
 
+    log("send-results", "success", { sent: results.length });
     return res.status(200).json({ sent: results.length, results });
   } catch (err: any) {
-    console.error("Results email failed:", err?.message || err);
+    log("send-results", "error", { message: err?.message }, "ERROR");
     return res.status(500).json({ error: "Email send failed" });
   }
 }

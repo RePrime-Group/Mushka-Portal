@@ -20,13 +20,15 @@ export default function StageCard({ stage, onClick }: StageCardProps) {
       whileHover={{ scale: 1.01 }}
       whileTap={{ scale: 0.99 }}
       onClick={onClick}
-      className="w-full bg-white rounded-2xl shadow-sm border border-stone-100 p-5 text-left transition-shadow hover:shadow-md min-h-[44px]"
+      className="w-full bg-white cursor-pointer rounded-2xl shadow-sm border border-stone-100 p-5 text-left transition-shadow hover:shadow-md min-h-[44px]"
     >
       <div className="flex items-start gap-4">
         <div
           className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 text-lg font-bold"
           style={{
-            backgroundColor: isComplete ? "rgba(212,168,67,0.15)" : "rgba(26,26,46,0.08)",
+            backgroundColor: isComplete
+              ? "rgba(212,168,67,0.15)"
+              : "rgba(26,26,46,0.08)",
             color: isComplete ? "#d4a843" : "#1a1a2e",
           }}
         >
@@ -39,7 +41,9 @@ export default function StageCard({ stage, onClick }: StageCardProps) {
               Stage {stage.id}: {stage.title}
             </h3>
           </div>
-          <p className="text-warm-gray text-sm mb-3 line-clamp-2">{stage.description}</p>
+          <p className="text-warm-gray text-sm mb-3 line-clamp-2">
+            {stage.description}
+          </p>
 
           <div className="flex items-center gap-3">
             <div className="flex-1 h-2 bg-stone-100 rounded-full overflow-hidden">
@@ -53,7 +57,9 @@ export default function StageCard({ stage, onClick }: StageCardProps) {
                 transition={{ duration: 0.5 }}
               />
             </div>
-            <span className="text-xs text-warm-gray shrink-0">{completedTasks}/5</span>
+            <span className="text-xs text-warm-gray shrink-0">
+              {completedTasks}/5
+            </span>
           </div>
 
           <div className="mt-2">

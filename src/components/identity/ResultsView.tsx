@@ -55,21 +55,31 @@ export default function ResultsView({ onBackToDashboard, onRetryPlaybook }: Resu
 
   return (
     <div className="min-h-dvh bg-cream app-shell">
-      <div className="max-w-2xl mx-auto px-4 py-6 sm:px-6 md:px-8 md:py-10 space-y-6">
-        {/* Header */}
+      <div className="max-w-2xl mx-auto px-4 py-6 sm:px-6 space-y-6">
+        {/* Header with back arrow */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center"
         >
-          <h1 className="text-2xl md:text-3xl font-bold text-navy mb-2">Your Operating Profile</h1>
-          <p className="text-sm md:text-base text-warm-gray">
-            A personalized map of how you think, learn, and work
-          </p>
+          <button
+            onClick={onBackToDashboard}
+            className="flex items-center gap-1.5 text-sm text-warm-gray hover:text-navy transition-colors mb-4 cursor-pointer min-h-11 -ml-1"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            Dashboard
+          </button>
+          <div className="text-center">
+            <h1 className="text-2xl md:text-3xl font-bold text-navy mb-2">Your Operating Profile</h1>
+            <p className="text-sm md:text-base text-warm-gray">
+              A personalized map of how you think, learn, and work
+            </p>
+          </div>
         </motion.div>
 
-        {/* Radar Chart + Profile — side by side on md+ */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+        {/* Radar Chart + Profile — stacked */}
+        <div className="space-y-6">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
