@@ -1,22 +1,59 @@
-import { useState, useRef, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { useMemo, useEffect, useRef, useState } from "react";
+import { Model } from "survey-core";
+import { Survey } from "survey-react-ui";
+import { motion } from "motion/react";
 import { useAppStore } from "../../store/useAppStore";
 import { ALL_ITEMS } from "../../data/items";
 import { ROTATION_ORDER } from "../../data/rotationOrder";
 import type { AssessmentItem, ItemResponse } from "../../store/types";
-import LikertCard from "./LikertCard";
-import KnowledgeCard from "./KnowledgeCard";
 import ProgressBar from "./ProgressBar";
 import confetti from "canvas-confetti";
 
-const TOTAL_ITEMS = ROTATION_ORDER.length; // 41
-const MIDPOINT = 21; // Show celebration after item 21
+// ─── Item lookup ─────────────────────────────────────────────────────────────
 
-// Build item lookup map
 const itemMap = new Map<string, AssessmentItem>();
-for (const item of ALL_ITEMS) {
-  itemMap.set(item.id, item);
+for (const item of ALL_ITEMS) itemMap.set(item.id, item);
+
+const TOTAL_ITEMS = ROTATION_ORDER.length;
+const MIDPOINT = 21;
+
+// ─── Build SurveyJS JSON model ───────────────────────────────────────────────
+// One page per item. SurveyJS handles the page-by-page presentation.
+// Navigation buttons, progress bar, and title are all suppressed —
+// we provide our own custom progress bar and auto-advance logic.
+
+function buildSurveyJson() {
+  return {
+    showNavigationButtons: "none",
+    showProgressBar: "off",
+    showTitle: false,
+    showCompletedPage: false,
+    questionErrorLocation: "bottom",
+    pages: ROTATION_ORDER.map((itemId, index) => {
+      const item = itemMap.get(itemId)!;
+      const choices = item.options.map((opt) => ({
+        value: opt.value,
+        text: opt.prefix ? `${opt.prefix}   ${opt.label}` : opt.label,
+      }));
+      return {
+        name: `page_${index}`,
+        elements: [
+          {
+            type: "radiogroup",
+            name: itemId,
+            title: item.text,
+            titleLocation: "top",
+            choices,
+            isRequired: false,
+            colCount: 1,
+          },
+        ],
+      };
+    }),
+  };
 }
+
+// ─── Component ───────────────────────────────────────────────────────────────
 
 interface AssessmentEngineProps {
   onComplete: () => void;
@@ -26,64 +63,80 @@ export default function AssessmentEngine({ onComplete }: AssessmentEngineProps) 
   const currentItemIndex = useAppStore((s) => s.assessmentState.currentItemIndex);
   const recordResponse = useAppStore((s) => s.recordResponse);
 
-  const [selected, setSelected] = useState<number | string | null>(null);
   const [showMidpoint, setShowMidpoint] = useState(false);
+  // pageNo drives the ProgressBar; updated whenever the survey advances
+  const [pageNo, setPageNo] = useState(currentItemIndex);
+
   const itemStartTime = useRef<number>(performance.now());
-  const advanceTimeout = useRef<ReturnType<typeof setTimeout>>();
+  const advanceTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  // Current item from rotation order
-  const currentItemId = ROTATION_ORDER[currentItemIndex];
-  const currentItem = currentItemId ? itemMap.get(currentItemId) : undefined;
+  // Create the model once. Resume at the correct page if mid-assessment.
+  const survey = useMemo(() => {
+    const model = new Model(buildSurveyJson());
+    model.currentPageNo = currentItemIndex;
+    return model;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Reset timer when item changes
   useEffect(() => {
-    itemStartTime.current = performance.now();
-    setSelected(null);
+    const onValueChanged = (sender: Model, options: { name: string; value: number | string }) => {
+      const pageIndex = sender.currentPageNo;
+      const itemId = ROTATION_ORDER[pageIndex];
+      const item = itemMap.get(itemId)!;
+      const responseTimeMs = Math.round(performance.now() - itemStartTime.current);
+
+      const response: ItemResponse = {
+        itemId,
+        instrumentId: item.instrumentId,
+        value: options.value,
+        responseTimeMs,
+        timestamp: new Date().toISOString(),
+        rotationIndex: pageIndex,
+      };
+
+      const delay = item.type === "knowledge" ? 600 : 400;
+
+      if (advanceTimeout.current) clearTimeout(advanceTimeout.current);
+
+      advanceTimeout.current = setTimeout(() => {
+        recordResponse(response);
+
+        if (pageIndex === MIDPOINT - 1) {
+          setShowMidpoint(true);
+          confetti({
+            particleCount: 50,
+            spread: 60,
+            origin: { y: 0.6 },
+            colors: ["#BC9C45", "#0E3470"],
+          });
+          setTimeout(() => {
+            setShowMidpoint(false);
+            if (pageIndex + 1 >= TOTAL_ITEMS) {
+              onComplete();
+            } else {
+              sender.nextPage();
+              itemStartTime.current = performance.now();
+              setPageNo(sender.currentPageNo);
+            }
+          }, 2500);
+        } else if (pageIndex + 1 >= TOTAL_ITEMS) {
+          onComplete();
+        } else {
+          sender.nextPage();
+          itemStartTime.current = performance.now();
+          setPageNo(sender.currentPageNo);
+        }
+      }, delay);
+    };
+
+    survey.onValueChanged.add(onValueChanged);
     return () => {
+      survey.onValueChanged.remove(onValueChanged);
       if (advanceTimeout.current) clearTimeout(advanceTimeout.current);
     };
-  }, [currentItemIndex]);
+  }, [survey, recordResponse, onComplete]);
 
-  const handleSelect = useCallback((value: number | string) => {
-    if (selected !== null) return; // Prevent double-selection
-    setSelected(value);
-
-    const responseTimeMs = Math.round(performance.now() - itemStartTime.current);
-
-    const response: ItemResponse = {
-      itemId: currentItemId,
-      instrumentId: currentItem!.instrumentId,
-      value,
-      responseTimeMs,
-      timestamp: new Date().toISOString(),
-      rotationIndex: currentItemIndex,
-    };
-
-    const delay = currentItem!.type === 'knowledge' ? 600 : 400;
-
-    advanceTimeout.current = setTimeout(() => {
-      recordResponse(response);
-
-      // Check if we just hit midpoint
-      if (currentItemIndex === MIDPOINT - 1) {
-        setShowMidpoint(true);
-        confetti({
-          particleCount: 50,
-          spread: 60,
-          origin: { y: 0.6 },
-          colors: ["#BC9C45", "#0E3470"],
-        });
-        setTimeout(() => {
-          setShowMidpoint(false);
-          if (currentItemIndex + 1 >= TOTAL_ITEMS) {
-            onComplete();
-          }
-        }, 2500);
-      } else if (currentItemIndex + 1 >= TOTAL_ITEMS) {
-        onComplete();
-      }
-    }, delay);
-  }, [selected, currentItemId, currentItem, currentItemIndex, recordResponse, onComplete]);
+  // ── Midpoint celebration ──────────────────────────────────────────────────
 
   if (showMidpoint) {
     return (
@@ -101,65 +154,20 @@ export default function AssessmentEngine({ onComplete }: AssessmentEngineProps) 
     );
   }
 
-  if (!currentItem) return null;
-
-  const isKnowledge = currentItem.type === 'knowledge';
+  // ── Main render ───────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-dvh bg-cream flex flex-col app-shell">
-      <div className="px-4 pt-4 pb-3 sm:px-6">
-        <ProgressBar current={currentItemIndex + 1} total={TOTAL_ITEMS} />
+    <div className="min-h-dvh bg-cream flex flex-col app-shell survey-host">
+      {/* Custom progress bar — SurveyJS built-in is suppressed */}
+      <div className="px-4 pt-4 pb-3 sm:px-6 md:px-8 max-w-2xl mx-auto w-full">
+        <ProgressBar current={pageNo + 1} total={TOTAL_ITEMS} />
       </div>
 
-      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 pb-8">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentItemId}
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -30 }}
-            transition={{ duration: 0.2 }}
-            className="max-w-md w-full"
-          >
-            {isKnowledge ? (
-              <>
-                <div className="bg-stone-50 rounded-xl p-4 mb-5">
-                  <p className="text-sm text-stone-700 leading-relaxed">
-                    {currentItem.text}
-                  </p>
-                </div>
-                <div className="space-y-2.5">
-                  {currentItem.options.map((option) => (
-                    <KnowledgeCard
-                      key={String(option.value)}
-                      option={option}
-                      selected={selected === option.value}
-                      hasSelection={selected !== null}
-                      onSelect={() => handleSelect(option.value)}
-                    />
-                  ))}
-                </div>
-              </>
-            ) : (
-              <>
-                <p className="text-lg text-navy font-medium text-center leading-relaxed mb-8 px-2">
-                  {currentItem.text}
-                </p>
-                <div className="space-y-2.5">
-                  {currentItem.options.map((option) => (
-                    <LikertCard
-                      key={String(option.value)}
-                      option={option}
-                      selected={selected === option.value}
-                      hasSelection={selected !== null}
-                      onSelect={() => handleSelect(option.value)}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-          </motion.div>
-        </AnimatePresence>
+      {/* SurveyJS renders one page (one item) at a time */}
+      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 md:px-8 pb-8">
+        <div className="w-full max-w-md md:max-w-xl lg:max-w-2xl">
+          <Survey model={survey} />
+        </div>
       </div>
     </div>
   );

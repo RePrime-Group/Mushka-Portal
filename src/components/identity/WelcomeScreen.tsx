@@ -10,11 +10,11 @@ export default function WelcomeScreen({ onStart }: WelcomeScreenProps) {
 
   return (
     <div className="min-h-dvh bg-cream flex flex-col app-shell">
-      <div className="px-4 pt-4 sm:px-6">
+      <div className="px-4 pt-4 sm:px-6 md:px-8">
         <span className="text-sm font-semibold text-navy">RePrime Group</span>
       </div>
 
-      <div className="flex-1 flex items-center justify-center px-4 sm:px-6">
+      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 md:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -22,15 +22,15 @@ export default function WelcomeScreen({ onStart }: WelcomeScreenProps) {
           className="max-w-md w-full text-center"
         >
           <div className="mb-8">
-            <h1 className="text-[28px] font-bold text-navy leading-tight mb-3">
+            <h1 className="text-[28px] md:text-[32px] font-bold text-navy leading-tight mb-3">
               Discover Your Operating Style
             </h1>
-            <p className="text-stone-600 text-base leading-relaxed">
+            <p className="text-stone-600 text-base md:text-lg leading-relaxed">
               This 12-minute assessment maps how you think, learn, and work — so your AI training adapts to you.
             </p>
           </div>
 
-          <div className="flex items-center justify-center gap-3 mb-10">
+          <div className="flex items-center justify-center gap-2 sm:gap-3 flex-wrap mb-10">
             <span className="ie-feature-pill">40 Questions</span>
             <span className="ie-feature-pill">12 Minutes</span>
             <span className="ie-feature-pill">Personalized Playbook</span>
@@ -84,7 +84,7 @@ export default function WelcomeScreen({ onStart }: WelcomeScreenProps) {
                       exposure, not potential.
                     </p>
                     <p>
-                      All data is stored locally on your device and transmitted securely to Azure-hosted serverless functions.
+                      All data is stored locally on your device and transmitted securely to Vercel-hosted serverless functions.
                       No data is sold or shared with third parties.
                     </p>
                     <p>

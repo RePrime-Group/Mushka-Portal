@@ -203,7 +203,7 @@ export const useAppStore = create<AppState & AppActions>()(
         });
       },
 
-      submitReflection: (stageId: number, reflection: string, feedback: string) => {
+      submitReflection: (stageId: number, _reflection: string, _feedback: string) => {
         const state = get();
         const stage = state.stages[stageId];
         if (!stage) return;

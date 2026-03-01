@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { useAppStore } from "../../store/useAppStore";
 import { stages } from "../../data/curriculum";
@@ -7,11 +8,24 @@ interface SidebarProps {
   onClose: () => void;
 }
 
+const LG_MQL =
+  typeof window !== "undefined" ? window.matchMedia("(min-width: 1024px)") : null;
+
 export default function Sidebar({ open, onClose }: SidebarProps) {
   const currentStage = useAppStore((s) => s.currentStage);
   const stageProgress = useAppStore((s) => s.stages);
   const setCurrentStage = useAppStore((s) => s.setCurrentStage);
   const logout = useAppStore((s) => s.logout);
+
+  // Track whether the lg breakpoint is active so Framer Motion's inline
+  // transform doesn't fight with Tailwind's lg:translate-x-0 / lg:static.
+  const [isDesktop, setIsDesktop] = useState(LG_MQL?.matches ?? false);
+  useEffect(() => {
+    if (!LG_MQL) return;
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    LG_MQL.addEventListener("change", handler);
+    return () => LG_MQL.removeEventListener("change", handler);
+  }, []);
 
   function handleStageClick(stageId: number) {
     setCurrentStage(stageId);
@@ -33,7 +47,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
       {/* Sidebar */}
       <motion.aside
         initial={false}
-        animate={{ x: open ? 0 : -280 }}
+        animate={{ x: isDesktop ? 0 : open ? 0 : -280 }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
         className="fixed top-0 left-0 bottom-0 w-[280px] bg-navy z-50 flex flex-col lg:translate-x-0 lg:static lg:z-auto"
         style={{ paddingTop: "var(--safe-top)" }}

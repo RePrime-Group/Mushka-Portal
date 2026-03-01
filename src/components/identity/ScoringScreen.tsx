@@ -1,4 +1,3 @@
-import { useEffect, useRef } from "react";
 import { motion } from "motion/react";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from "recharts";
 
@@ -13,18 +12,18 @@ const emptyData = [
 
 export default function ScoringScreen() {
   return (
-    <div className="min-h-dvh bg-cream flex flex-col items-center justify-center px-4 app-shell">
+    <div className="min-h-dvh bg-cream flex flex-col items-center justify-center px-4 sm:px-6 app-shell">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="max-w-sm w-full text-center"
+        className="max-w-sm md:max-w-md w-full text-center"
       >
-        <div className="w-64 h-64 mx-auto mb-6">
+        <div className="w-64 h-64 md:w-80 md:h-80 mx-auto mb-6">
           <motion.div
             animate={{ opacity: [0.3, 0.7, 0.3] }}
             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
           >
-            <ResponsiveContainer width="100%" height={256}>
+            <ResponsiveContainer width="100%" height="100%">
               <RadarChart data={emptyData}>
                 <PolarGrid stroke="#e5e5e5" />
                 <PolarAngleAxis
@@ -43,8 +42,8 @@ export default function ScoringScreen() {
           </motion.div>
         </div>
 
-        <p className="text-navy font-medium text-lg mb-2">Building your profile...</p>
-        <p className="text-sm text-warm-gray">
+        <p className="text-navy font-medium text-lg md:text-xl mb-2">Building your profile...</p>
+        <p className="text-sm md:text-base text-warm-gray">
           Analyzing your responses and generating your Personal Operating Playbook
         </p>
       </motion.div>

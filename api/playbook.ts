@@ -39,13 +39,13 @@ Section 5 - Growth Edge: Identify 2-3 specific development areas suggested by th
 8. OUTPUT VALID JSON. The content fields should use markdown formatting for paragraphs and emphasis. No raw HTML.
 </constraints>`;
 
-export default async function handler(req: any): Promise<any> {
+export default async function handler(req: any, res: any) {
   if (req.method !== "POST") {
-    return { status: 405, body: "Method not allowed" };
+    return res.status(405).send("Method not allowed");
   }
 
   try {
-    const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+    const body = req.body;
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
     const message = await client.messages.create({
@@ -60,22 +60,12 @@ export default async function handler(req: any): Promise<any> {
     });
 
     const responseText = message.content[0].type === "text" ? message.content[0].text : "";
-
-    // Parse JSON from response (strip markdown code fences if present)
     const cleaned = responseText.replace(/```json\n?|```\n?/g, "").trim();
     const playbook = JSON.parse(cleaned);
 
-    return {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(playbook),
-    };
+    return res.status(200).json(playbook);
   } catch (err: any) {
     console.error("Playbook generation failed:", err?.message || err);
-    return {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ error: "Playbook generation failed", detail: err?.message }),
-    };
+    return res.status(500).json({ error: "Playbook generation failed", detail: err?.message });
   }
 }

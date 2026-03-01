@@ -1,4 +1,4 @@
-import { motion } from "motion/react";
+import { useState, useEffect, useRef } from "react";
 import {
   Radar,
   RadarChart,
@@ -14,20 +14,19 @@ interface RadarProfileProps {
 }
 
 function normalizeScore(instrumentId: string, score: InstrumentScore): number {
-  // Normalize all scores to 0-100 for radar display
   switch (instrumentId) {
     case "ngse":
-      return ((score.mean - 1) / 4) * 100; // 1-5 scale
+      return ((score.mean - 1) / 4) * 100;
     case "mslq_se":
-      return ((score.mean - 1) / 6) * 100; // 1-7 scale
+      return ((score.mean - 1) / 6) * 100;
     case "grit":
-      return ((score.mean - 1) / 4) * 100; // 1-5 scale
+      return ((score.mean - 1) / 4) * 100;
     case "metacognition":
-      return ((score.mean - 1) / 6) * 100; // 1-7 scale
+      return ((score.mean - 1) / 6) * 100;
     case "ai_knowledge":
-      return ((score.raw ?? 0) / 5) * 100; // 0-5 sum
+      return ((score.raw ?? 0) / 5) * 100;
     case "tech_comfort":
-      return ((score.mean - 1) / 5) * 100; // 1-6 scale
+      return ((score.mean - 1) / 5) * 100;
     default:
       return 50;
   }
@@ -50,53 +49,95 @@ function normalizeNorm(instrumentId: string): number {
   }
 }
 
-export default function RadarProfile({ scores }: RadarProfileProps) {
-  const axes = [
-    { key: "ngse", label: "Self-Efficacy" },
-    { key: "mslq_se", label: "Learning\nConfidence" },
-    { key: "grit", label: "Grit" },
-    { key: "metacognition", label: "Metacognition" },
-    { key: "ai_knowledge", label: "AI Knowledge" },
-    { key: "tech_comfort", label: "Tech Comfort" },
-  ];
+const AXES = [
+  { key: "ngse", label: "Self-Efficacy" },
+  { key: "mslq_se", label: "Learning\nConfidence" },
+  { key: "grit", label: "Grit" },
+  { key: "metacognition", label: "Metacognition" },
+  { key: "ai_knowledge", label: "AI Knowledge" },
+  { key: "tech_comfort", label: "Tech Comfort" },
+];
 
-  const data = axes.map((axis) => ({
+const ANIM_DURATION = 1500; // ms per axis
+const STAGGER_MS = 100;     // delay between axes
+const INITIAL_DELAY = 400;  // wait for container fade-in
+
+export default function RadarProfile({ scores }: RadarProfileProps) {
+  // Per-axis progress 0→1, staggered
+  const [axisProgress, setAxisProgress] = useState<number[]>(
+    Array(AXES.length).fill(0)
+  );
+  const rafRef = useRef<number | undefined>(undefined);
+  const startRef = useRef<number | undefined>(undefined);
+
+  useEffect(() => {
+    const delay = setTimeout(() => {
+      startRef.current = performance.now();
+
+      function tick(now: number) {
+        const elapsed = now - startRef.current!;
+        const next = AXES.map((_, i) => {
+          const axisElapsed = elapsed - i * STAGGER_MS;
+          if (axisElapsed <= 0) return 0;
+          const p = Math.min(axisElapsed / ANIM_DURATION, 1);
+          // ease-out-cubic
+          return 1 - Math.pow(1 - p, 3);
+        });
+        setAxisProgress(next);
+
+        if (next[AXES.length - 1] < 1) {
+          rafRef.current = requestAnimationFrame(tick);
+        }
+      }
+
+      rafRef.current = requestAnimationFrame(tick);
+    }, INITIAL_DELAY);
+
+    return () => {
+      clearTimeout(delay);
+      if (rafRef.current !== undefined) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
+
+  const finalData = AXES.map((axis) => ({
     axis: axis.label,
     score: scores[axis.key] ? normalizeScore(axis.key, scores[axis.key]) : 0,
     average: normalizeNorm(axis.key),
   }));
 
+  // Apply per-axis progress to produce animated values
+  const animatedData = finalData.map((d, i) => ({
+    axis: d.axis,
+    score: d.score * axisProgress[i],
+    average: d.average * axisProgress[i],
+  }));
+
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 1.5, ease: "easeOut" }}
-      className="w-full"
-    >
+    <div className="w-full">
       <ResponsiveContainer width="100%" height={300}>
-        <RadarChart data={data} cx="50%" cy="50%" outerRadius="70%">
+        <RadarChart data={animatedData} cx="50%" cy="50%" outerRadius="70%">
           <PolarGrid stroke="#e5e5e5" />
           <PolarAngleAxis
             dataKey="axis"
             tick={{ fontSize: 10, fill: "#78716c" }}
           />
-          {/* Population average polygon */}
+          {/* Population average polygon — spec: navy at 0.15 opacity */}
           <Radar
             name="Average"
             dataKey="average"
             stroke="#0E3470"
             fill="#0E3470"
-            fillOpacity={0.08}
+            fillOpacity={0.15}
             strokeWidth={1.5}
             strokeDasharray="4 4"
           />
-          {/* Mushka's scores polygon */}
+          {/* User scores polygon — spec: gold at 0.3 opacity */}
           <Radar
             name="You"
             dataKey="score"
             stroke="#BC9C45"
             fill="#BC9C45"
-            fillOpacity={0.2}
+            fillOpacity={0.3}
             strokeWidth={2}
           />
         </RadarChart>
@@ -111,6 +152,6 @@ export default function RadarProfile({ scores }: RadarProfileProps) {
           <span className="text-[11px] text-warm-gray">Population Average</span>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

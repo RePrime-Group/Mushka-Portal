@@ -1,8 +1,0 @@
-{
-  "name": "mushka-portal-api",
-  "private": true,
-  "dependencies": {
-    "@anthropic-ai/sdk": "latest",
-    "resend": "latest"
-  }
-}

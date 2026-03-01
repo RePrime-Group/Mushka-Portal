@@ -33,21 +33,17 @@ Never use 'Great job!' or 'Well done!' without substance.
 Total: 150-250 words. Natural prose. No bullet points.
 </response_format>`;
 
-export default async function handler(req: any, context: any) {
+export default async function handler(req: any, res: any) {
   if (req.method !== "POST") {
-    return { status: 405, body: "Method not allowed" };
+    return res.status(405).send("Method not allowed");
   }
 
   try {
-    const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+    const body = req.body;
     const { stageNumber, reflection } = body;
 
     if (!stageNumber || !reflection) {
-      return {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ error: "Missing stageNumber or reflection" }),
-      };
+      return res.status(400).json({ error: "Missing stageNumber or reflection" });
     }
 
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -65,17 +61,9 @@ export default async function handler(req: any, context: any) {
         ? message.content[0].text
         : "Thank you for your reflection.";
 
-    return {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ feedback }),
-    };
+    return res.status(200).json({ feedback });
   } catch (err: any) {
     console.error("Feedback generation failed:", err?.message || err);
-    return {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ error: "Feedback generation failed" }),
-    };
+    return res.status(500).json({ error: "Feedback generation failed" });
   }
 }

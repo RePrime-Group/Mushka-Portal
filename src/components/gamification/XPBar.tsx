@@ -1,12 +1,11 @@
 import { motion } from "motion/react";
 import { useAppStore } from "../../store/useAppStore";
-import { getIdentityTitle, TOTAL_XP } from "../../data/curriculum";
+import { TOTAL_XP } from "../../data/curriculum";
 import { getNextMilestone } from "../../utils/xp";
 
 export default function XPBar() {
   const xp = useAppStore((s) => s.xp);
   const progress = Math.min(xp / TOTAL_XP, 1);
-  const title = getIdentityTitle(xp);
   const next = getNextMilestone(xp);
 
   return (
