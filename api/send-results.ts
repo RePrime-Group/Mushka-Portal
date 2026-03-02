@@ -1,5 +1,5 @@
 import { Resend } from "resend";
-import { log } from "./_logger";
+import { log } from "./_logger.js";
 
 const TEAM_EMAILS = [
   "g@reprime.com",
