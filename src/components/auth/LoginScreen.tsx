@@ -2,10 +2,10 @@ import { useState } from "react";
 import { motion } from "motion/react";
 import { useAppStore } from "../../store/useAppStore";
 
-const VALID_EMAIL = "test@gmail.com";
-const VALID_PASSWORD = "Test123!";
-// const VALID_EMAIL = "mushka@gratsiani.com";
-// const VALID_PASSWORD = "Shely770";
+// const VALID_EMAIL = "test@gmail.com";
+// const VALID_PASSWORD = "Test123!";
+const VALID_EMAIL = "mushka@gratsiani.com";
+const VALID_PASSWORD = "Shely770";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
