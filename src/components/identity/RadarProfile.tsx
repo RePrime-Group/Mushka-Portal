@@ -125,7 +125,7 @@ export default function RadarProfile({ scores }: RadarProfileProps) {
           <PolarRadiusAxis
             angle={30}
             domain={[0, 100]}
-            ticks={[25, 50, 75, 100]}
+            ticks={[25, 50, 75, 100] as any}
             tick={{ fontSize: 8, fill: "#a8a29e" }}
             axisLine={false}
           />
