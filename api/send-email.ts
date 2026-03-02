@@ -2,16 +2,14 @@ import { Resend } from "resend";
 import { log } from "./_logger";
 
 const TEAM_EMAILS = [
-  "ubaid@impleko.ai",
-  // "g@reprime.com",
-  // "amelia@reprime.com",
-  // "dcyg770@gmail.com",
-  // "shirel@reprime.com",
-  // "steve@reprime.com",
+  "g@reprime.com",
+  "amelia@reprime.com",
+  "dcyg770@gmail.com",
+  "shirel@reprime.com",
+  "steve@reprime.com",
 ];
 
-// const MUSHKA_EMAIL = "mushka@gratsiani.com";
-const MUSHKA_EMAIL = "devsalmansidd@gmail.com";
+const MUSHKA_EMAIL = "mushka@gratsiani.com";
 const FROM_ADDRESS = "notifications@meetreprime.com";
 
 interface EmailContent {
