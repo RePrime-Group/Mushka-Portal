@@ -1,15 +1,18 @@
 import { Resend } from "resend";
+import { log } from "./_logger";
 
 const TEAM_EMAILS = [
-  "g@reprime.com",
-  "amelia@reprime.com",
-  "dcyg770@gmail.com",
-  "shirel@reprime.com",
-  "steve@reprime.com",
+  "ubaid@impleko.ai",
+  // "g@reprime.com",
+  // "amelia@reprime.com",
+  // "dcyg770@gmail.com",
+  // "shirel@reprime.com",
+  // "steve@reprime.com",
 ];
 
-const MUSHKA_EMAIL = "mushka@gratsiani.com";
-const FROM_ADDRESS = "notifications@reprime.com";
+// const MUSHKA_EMAIL = "mushka@gratsiani.com";
+const MUSHKA_EMAIL = "devsalmansidd@gmail.com";
+const FROM_ADDRESS = "notifications@meetreprime.com";
 
 interface EmailContent {
   teamSubject?: string;
@@ -22,8 +25,7 @@ function getEmailContent(trigger: string, data: any): EmailContent {
   switch (trigger) {
     case "program-start":
       return {
-        teamSubject:
-          "\u{1F680} Mushka Started \u2014 ORDER NECKLACE NOW",
+        teamSubject: "🚀 Mushka Started — ORDER NECKLACE NOW",
         teamBody: `<h2>PRE-ORDER ALERT</h2>
 <p><strong>Mushka has officially started her AI training program.</strong></p>
 <p><strong>Action Required (Amelia):</strong> Order immediately:</p>
@@ -32,7 +34,7 @@ function getEmailContent(trigger: string, data: any): EmailContent {
 <li>18k Gold Vermeil</li>
 <li>Engraved: "MUSHKA"</li>
 <li>Gift wrapped</li>
-<li>$150 \u2014 Shirel's card</li>
+<li>$150 — Shirel's card</li>
 <li>Ships 5-7 days</li>
 </ul>
 <p>Amelia orders immediately. Shirel's card.</p>`,
@@ -40,8 +42,7 @@ function getEmailContent(trigger: string, data: any): EmailContent {
 
     case "stage-1-halfway":
       return {
-        teamSubject:
-          "\u{1F4CA} Mushka Progress: Stage 1 \u2014 50%",
+        teamSubject: "📊 Mushka Progress: Stage 1 — 50%",
         teamBody: `<h2>Progress Update</h2>
 <p>Mushka has completed ${data.tasksCompleted || 3} of 5 tasks in Stage 1.</p>
 <p>Current streak: ${data.currentStreak || 0} days</p>
@@ -50,21 +51,19 @@ function getEmailContent(trigger: string, data: any): EmailContent {
 
     case "stage-1-complete":
       return {
-        teamSubject:
-          "\u{1F389} Stage 1 Complete \u2014 GIFT SHIPPING",
+        teamSubject: "🎉 Stage 1 Complete — GIFT SHIPPING",
         teamBody: `<h2>Stage 1 Complete!</h2>
 <p>Mushka has completed all 5 tasks in Stage 1: "Your AI, Your World"</p>
 <p>Total XP: ${data.totalXP || 1000}</p>
 <p><strong>Action:</strong> The Kendra Scott necklace should be arriving. Confirm tracking number and delivery status.</p>`,
         mushkaSubject: "You completed Stage 1",
         mushkaBody: `<p>You completed Stage 1. The team at RePrime Group is proud of you.</p>
-<p>A gift is making its way to you \u2014 because you earned it.</p>`,
+<p>A gift is making its way to you — because you earned it.</p>`,
       };
 
     case "stage-3-halfway":
       return {
-        teamSubject:
-          "\u{1F4CA} Mushka Progress: Stage 3 \u2014 50%",
+        teamSubject: "📊 Mushka Progress: Stage 3 — 50%",
         teamBody: `<h2>Progress Update</h2>
 <p>Mushka has completed ${data.tasksCompleted || 3} of 5 tasks in Stage 3: "Building Bridges"</p>
 <p>Current streak: ${data.currentStreak || 0} days</p>
@@ -73,8 +72,7 @@ function getEmailContent(trigger: string, data: any): EmailContent {
 
     case "stage-3-complete":
       return {
-        teamSubject:
-          "\u{1F389} Stage 3 Complete \u2014 SEND $350 NORDSTROM eGIFT",
+        teamSubject: "🎉 Stage 3 Complete — SEND $350 NORDSTROM eGIFT",
         teamBody: `<h2>Stage 3 Complete!</h2>
 <p>Mushka has completed all 5 tasks in Stage 3: "Building Bridges"</p>
 <p>Total XP: ${data.totalXP || 5500}</p>
@@ -87,7 +85,7 @@ function getEmailContent(trigger: string, data: any): EmailContent {
     case "all-complete":
       return {
         teamSubject:
-          "\u{1F389} ALL STAGES COMPLETE \u2014 SEND $600 NORDSTROM eGIFT + DOMAIN",
+          "🎉 ALL STAGES COMPLETE — SEND $600 NORDSTROM eGIFT + DOMAIN",
         teamBody: `<h2>ALL 5 STAGES COMPLETE!</h2>
 <p>Mushka has completed the entire AI training program.</p>
 <p>Total XP: ${data.totalXP || 11000}</p>
@@ -108,64 +106,6 @@ function getEmailContent(trigger: string, data: any): EmailContent {
   }
 }
 
-export default async function handler(req: any, context: any) {
-  if (req.method !== "POST") {
-    return { status: 405, body: "Method not allowed" };
-  }
-
-  try {
-    const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
-    const { trigger, ...data } = body;
-
-    if (!trigger) {
-      return {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ error: "Missing trigger" }),
-      };
-    }
-
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    const content = getEmailContent(trigger, data);
-    const results: any[] = [];
-
-    // Send team email
-    if (content.teamSubject && content.teamBody) {
-      const teamResult = await resend.emails.send({
-        from: FROM_ADDRESS,
-        to: TEAM_EMAILS,
-        subject: content.teamSubject,
-        html: wrapHtml(content.teamBody),
-      });
-      results.push({ type: "team", result: teamResult });
-    }
-
-    // Send Mushka email (warm messages only, no dollar amounts)
-    if (content.mushkaSubject && content.mushkaBody) {
-      const mushkaResult = await resend.emails.send({
-        from: FROM_ADDRESS,
-        to: [MUSHKA_EMAIL],
-        subject: content.mushkaSubject,
-        html: wrapHtml(content.mushkaBody),
-      });
-      results.push({ type: "mushka", result: mushkaResult });
-    }
-
-    return {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sent: results.length, results }),
-    };
-  } catch (err: any) {
-    console.error("Email send failed:", err?.message || err);
-    return {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ error: "Email send failed" }),
-    };
-  }
-}
-
 function wrapHtml(body: string): string {
   return `<!DOCTYPE html>
 <html>
@@ -181,7 +121,74 @@ function wrapHtml(body: string): string {
 <body>
 ${body}
 <hr style="border: none; border-top: 1px solid #e5e5e5; margin-top: 30px;">
-<p style="font-size: 12px; color: #999;">Mushka AI Portal \u2014 RePrime Group</p>
+<p style="font-size: 12px; color: #999;">Mushka AI Portal — RePrime Group</p>
 </body>
 </html>`;
+}
+
+export default async function handler(req: any, res: any) {
+  if (req.method !== "POST") {
+    log("send-email", "method_not_allowed", { method: req.method }, "WARN");
+    return res.status(405).send("Method not allowed");
+  }
+
+  try {
+    const body = req.body;
+    const { trigger, ...data } = body;
+
+    if (!trigger) {
+      log("send-email", "missing_trigger", {}, "WARN");
+      return res.status(400).json({ error: "Missing trigger" });
+    }
+
+    log("send-email", "request_received", { trigger });
+
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const content = getEmailContent(trigger, data);
+    const results: any[] = [];
+
+    if (content.teamSubject && content.teamBody) {
+      const t0 = Date.now();
+      const teamResult = await resend.emails.send({
+        from: FROM_ADDRESS,
+        to: TEAM_EMAILS,
+        subject: content.teamSubject,
+        html: wrapHtml(content.teamBody),
+      });
+      log("send-email", "team_email_sent", {
+        trigger,
+        durationMs: Date.now() - t0,
+        to: TEAM_EMAILS,
+        subject: content.teamSubject,
+        id: (teamResult as any)?.data?.id,
+        error: (teamResult as any)?.error ?? null,
+      });
+      results.push({ type: "team", result: teamResult });
+    }
+
+    if (content.mushkaSubject && content.mushkaBody) {
+      const t1 = Date.now();
+      const mushkaResult = await resend.emails.send({
+        from: FROM_ADDRESS,
+        to: [MUSHKA_EMAIL],
+        subject: content.mushkaSubject,
+        html: wrapHtml(content.mushkaBody),
+      });
+      log("send-email", "mushka_email_sent", {
+        trigger,
+        durationMs: Date.now() - t1,
+        to: MUSHKA_EMAIL,
+        subject: content.mushkaSubject,
+        id: (mushkaResult as any)?.data?.id,
+        error: (mushkaResult as any)?.error ?? null,
+      });
+      results.push({ type: "mushka", result: mushkaResult });
+    }
+
+    log("send-email", "success", { trigger, sent: results.length });
+    return res.status(200).json({ sent: results.length, results });
+  } catch (err: any) {
+    log("send-email", "error", { message: err?.message }, "ERROR");
+    return res.status(500).json({ error: "Email send failed" });
+  }
 }

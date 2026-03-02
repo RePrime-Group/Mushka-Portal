@@ -72,7 +72,7 @@ export const useAppStore = create<AppState & AppActions>()(
         graceDaysMonth: 0,
         totalTasksCompleted: 0,
       },
-      currentStage: 1,
+      currentStage: 0,
       celebrationQueue: [],
       programStartEmailSent: false,
       assessmentState: initialAssessmentState,
@@ -87,6 +87,23 @@ export const useAppStore = create<AppState & AppActions>()(
       },
 
       logout: () => set({ isLoggedIn: false, email: "" }),
+
+      resetProgress: () =>
+        set({
+          stages: createInitialStages(),
+          xp: 0,
+          streak: {
+            currentStreak: 0,
+            lastActiveDate: "",
+            graceDaysUsed: 0,
+            graceDaysMonth: 0,
+            totalTasksCompleted: 0,
+          },
+          currentStage: 0,
+          celebrationQueue: [],
+          programStartEmailSent: false,
+          assessmentState: initialAssessmentState,
+        }),
 
       completeTask: (stageId: number, taskId: string) => {
         const state = get();
@@ -203,7 +220,7 @@ export const useAppStore = create<AppState & AppActions>()(
         });
       },
 
-      submitReflection: (stageId: number, reflection: string, feedback: string) => {
+      submitReflection: (stageId: number, _reflection: string, _feedback: string) => {
         const state = get();
         const stage = state.stages[stageId];
         if (!stage) return;

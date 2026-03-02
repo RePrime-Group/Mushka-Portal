@@ -1,22 +1,86 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAppStore } from "../../store/useAppStore";
 import { ALL_ITEMS } from "../../data/items";
 import { ROTATION_ORDER } from "../../data/rotationOrder";
-import type { AssessmentItem, ItemResponse } from "../../store/types";
-import LikertCard from "./LikertCard";
-import KnowledgeCard from "./KnowledgeCard";
+import type { AssessmentItem, AssessmentOption, ItemResponse } from "../../store/types";
 import ProgressBar from "./ProgressBar";
 import confetti from "canvas-confetti";
 
-const TOTAL_ITEMS = ROTATION_ORDER.length; // 41
-const MIDPOINT = 21; // Show celebration after item 21
+// ─── Item lookup ─────────────────────────────────────────────────────────────
 
-// Build item lookup map
 const itemMap = new Map<string, AssessmentItem>();
-for (const item of ALL_ITEMS) {
-  itemMap.set(item.id, item);
+for (const item of ALL_ITEMS) itemMap.set(item.id, item);
+
+const TOTAL_ITEMS = ROTATION_ORDER.length;
+const MIDPOINT = 21;
+
+// ─── Option button ────────────────────────────────────────────────────────────
+
+interface OptionButtonProps {
+  option: AssessmentOption;
+  selected: boolean;
+  anySelected: boolean;
+  onSelect: () => void;
 }
+
+function OptionButton({ option, selected, anySelected, onSelect }: OptionButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      disabled={anySelected}
+      className={[
+        "w-full text-left rounded-2xl border-2 px-4 py-4 transition-all duration-150 cursor-pointer",
+        selected
+          ? "border-[#BC9C45] bg-[#FBF5E6]"
+          : anySelected
+          ? "border-stone-200 bg-white opacity-40 cursor-default"
+          : "border-stone-200 bg-white hover:border-[#d4c8a8] hover:bg-stone-50 active:scale-[0.99]",
+      ].join(" ")}
+    >
+      <div className="flex items-center gap-3">
+        {/* Letter badge for knowledge (A/B/C/D) items */}
+        {option.prefix && (
+          <span
+            className={[
+              "shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-colors",
+              selected
+                ? "bg-[#BC9C45] text-white border-[#BC9C45]"
+                : "border-stone-300 text-stone-500",
+            ].join(" ")}
+          >
+            {option.prefix}
+          </span>
+        )}
+
+        <span
+          className={[
+            "text-[15px] leading-snug flex-1",
+            selected ? "text-navy font-semibold" : "text-stone-700",
+          ].join(" ")}
+        >
+          {option.label}
+        </span>
+
+        {/* Checkmark on selected */}
+        {selected && (
+          <svg
+            className="shrink-0 w-5 h-5 text-[#BC9C45]"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2.5}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        )}
+      </div>
+    </button>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 interface AssessmentEngineProps {
   onComplete: () => void;
@@ -26,138 +90,137 @@ export default function AssessmentEngine({ onComplete }: AssessmentEngineProps) 
   const currentItemIndex = useAppStore((s) => s.assessmentState.currentItemIndex);
   const recordResponse = useAppStore((s) => s.recordResponse);
 
-  const [selected, setSelected] = useState<number | string | null>(null);
   const [showMidpoint, setShowMidpoint] = useState(false);
+  // localIndex drives which item is displayed; starts at the store's persisted position
+  const [localIndex, setLocalIndex] = useState(currentItemIndex);
+  const [selected, setSelected] = useState<number | string | null>(null);
+
   const itemStartTime = useRef<number>(performance.now());
-  const advanceTimeout = useRef<ReturnType<typeof setTimeout>>();
+  const advanceTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  // Current item from rotation order
-  const currentItemId = ROTATION_ORDER[currentItemIndex];
-  const currentItem = currentItemId ? itemMap.get(currentItemId) : undefined;
+  const currentItem = itemMap.get(ROTATION_ORDER[localIndex])!;
 
-  // Reset timer when item changes
+  // Reset selection state each time we move to a new item
   useEffect(() => {
-    itemStartTime.current = performance.now();
     setSelected(null);
+    itemStartTime.current = performance.now();
+  }, [localIndex]);
+
+  const handleSelect = useCallback(
+    (value: number | string) => {
+      if (selected !== null) return; // guard against double-tap
+      setSelected(value);
+
+      const responseTimeMs = Math.round(performance.now() - itemStartTime.current);
+      const response: ItemResponse = {
+        itemId: currentItem.id,
+        instrumentId: currentItem.instrumentId,
+        value,
+        responseTimeMs,
+        timestamp: new Date().toISOString(),
+        rotationIndex: localIndex,
+      };
+
+      // Knowledge items auto-advance slightly slower so the selection registers visually
+      const delay = currentItem.type === "knowledge" ? 600 : 400;
+      if (advanceTimeout.current) clearTimeout(advanceTimeout.current);
+
+      advanceTimeout.current = setTimeout(() => {
+        recordResponse(response);
+
+        if (localIndex === MIDPOINT - 1) {
+          // Midpoint celebration
+          setShowMidpoint(true);
+          confetti({
+            particleCount: 50,
+            spread: 60,
+            origin: { y: 0.6 },
+            colors: ["#BC9C45", "#0E3470"],
+          });
+          setTimeout(() => {
+            setShowMidpoint(false);
+            if (localIndex + 1 >= TOTAL_ITEMS) {
+              onComplete();
+            } else {
+              setLocalIndex(localIndex + 1);
+            }
+          }, 2500);
+        } else if (localIndex + 1 >= TOTAL_ITEMS) {
+          onComplete();
+        } else {
+          setLocalIndex(localIndex + 1);
+        }
+      }, delay);
+    },
+    [selected, currentItem, localIndex, recordResponse, onComplete]
+  );
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
     return () => {
       if (advanceTimeout.current) clearTimeout(advanceTimeout.current);
     };
-  }, [currentItemIndex]);
+  }, []);
 
-  const handleSelect = useCallback((value: number | string) => {
-    if (selected !== null) return; // Prevent double-selection
-    setSelected(value);
-
-    const responseTimeMs = Math.round(performance.now() - itemStartTime.current);
-
-    const response: ItemResponse = {
-      itemId: currentItemId,
-      instrumentId: currentItem!.instrumentId,
-      value,
-      responseTimeMs,
-      timestamp: new Date().toISOString(),
-      rotationIndex: currentItemIndex,
-    };
-
-    const delay = currentItem!.type === 'knowledge' ? 600 : 400;
-
-    advanceTimeout.current = setTimeout(() => {
-      recordResponse(response);
-
-      // Check if we just hit midpoint
-      if (currentItemIndex === MIDPOINT - 1) {
-        setShowMidpoint(true);
-        confetti({
-          particleCount: 50,
-          spread: 60,
-          origin: { y: 0.6 },
-          colors: ["#BC9C45", "#0E3470"],
-        });
-        setTimeout(() => {
-          setShowMidpoint(false);
-          if (currentItemIndex + 1 >= TOTAL_ITEMS) {
-            onComplete();
-          }
-        }, 2500);
-      } else if (currentItemIndex + 1 >= TOTAL_ITEMS) {
-        onComplete();
-      }
-    }, delay);
-  }, [selected, currentItemId, currentItem, currentItemIndex, recordResponse, onComplete]);
+  // ── Midpoint celebration screen ───────────────────────────────────────────
 
   if (showMidpoint) {
     return (
-      <div className="min-h-dvh bg-cream flex items-center justify-center px-4 app-shell">
+      <div className="min-h-dvh bg-cream flex items-center justify-center px-6 app-shell">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="text-center max-w-sm"
+          className="text-center max-w-xs"
         >
-          <p className="text-lg text-navy font-medium leading-relaxed">
-            Halfway there. You're doing something most people never bother to do.
+          <div className="text-4xl mb-4">🎯</div>
+          <p className="text-xl font-semibold text-navy leading-relaxed mb-2">
+            Halfway there.
+          </p>
+          <p className="text-base text-stone-600 leading-relaxed">
+            You're doing something most people never bother to do.
           </p>
         </motion.div>
       </div>
     );
   }
 
-  if (!currentItem) return null;
-
-  const isKnowledge = currentItem.type === 'knowledge';
+  // ── Main assessment render ────────────────────────────────────────────────
 
   return (
     <div className="min-h-dvh bg-cream flex flex-col app-shell">
-      <div className="px-4 pt-4 pb-3 sm:px-6">
-        <ProgressBar current={currentItemIndex + 1} total={TOTAL_ITEMS} />
+      {/* Progress bar */}
+      <div className="px-3 pt-4 pb-3 sm:px-6 max-w-lg mx-auto w-full">
+        <ProgressBar current={localIndex + 1} total={TOTAL_ITEMS} />
       </div>
 
-      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 pb-8">
+      {/* Question area */}
+      <div className="flex-1 flex items-center justify-center px-3 sm:px-5 pb-8">
         <AnimatePresence mode="wait">
           <motion.div
-            key={currentItemId}
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -30 }}
-            transition={{ duration: 0.2 }}
-            className="max-w-md w-full"
+            key={localIndex}
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -18 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="w-full max-w-lg"
           >
-            {isKnowledge ? (
-              <>
-                <div className="bg-stone-50 rounded-xl p-4 mb-5">
-                  <p className="text-sm text-stone-700 leading-relaxed">
-                    {currentItem.text}
-                  </p>
-                </div>
-                <div className="space-y-2.5">
-                  {currentItem.options.map((option) => (
-                    <KnowledgeCard
-                      key={String(option.value)}
-                      option={option}
-                      selected={selected === option.value}
-                      hasSelection={selected !== null}
-                      onSelect={() => handleSelect(option.value)}
-                    />
-                  ))}
-                </div>
-              </>
-            ) : (
-              <>
-                <p className="text-lg text-navy font-medium text-center leading-relaxed mb-8 px-2">
-                  {currentItem.text}
-                </p>
-                <div className="space-y-2.5">
-                  {currentItem.options.map((option) => (
-                    <LikertCard
-                      key={String(option.value)}
-                      option={option}
-                      selected={selected === option.value}
-                      hasSelection={selected !== null}
-                      onSelect={() => handleSelect(option.value)}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
+            {/* Question text */}
+            <p className="text-lg sm:text-xl font-semibold text-navy text-center leading-relaxed mb-7 px-1">
+              {currentItem.text}
+            </p>
+
+            {/* Answer options */}
+            <div className="space-y-2.5">
+              {currentItem.options.map((opt) => (
+                <OptionButton
+                  key={opt.value}
+                  option={opt}
+                  selected={selected === opt.value}
+                  anySelected={selected !== null}
+                  onSelect={() => handleSelect(opt.value)}
+                />
+              ))}
+            </div>
           </motion.div>
         </AnimatePresence>
       </div>

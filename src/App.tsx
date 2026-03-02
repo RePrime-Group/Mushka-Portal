@@ -35,7 +35,7 @@ export default function App() {
       {currentStage === 0 ? (
         <Dashboard onOpenIdentity={() => setShowIdentity(true)} />
       ) : (
-        <StageView stageId={currentStage} />
+        <StageView stageId={currentStage} key={currentStage} />
       )}
     </AppShell>
   );

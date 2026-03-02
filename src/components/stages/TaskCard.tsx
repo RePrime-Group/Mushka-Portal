@@ -24,7 +24,7 @@ export default function TaskCard({ task }: TaskCardProps) {
     <div className="bg-white rounded-xl border border-stone-100 overflow-hidden shadow-sm">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full p-4 flex items-center gap-3 text-left min-h-[44px]"
+        className="w-full p-4 flex items-center gap-3 text-left min-h-[44px] cursor-pointer"
       >
         <div
           className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-sm"
@@ -99,7 +99,7 @@ export default function TaskCard({ task }: TaskCardProps) {
               {!isCompleted && (
                 <button
                   onClick={handleComplete}
-                  className="w-full py-3 bg-navy text-white rounded-xl font-medium hover:bg-navy-light active:scale-[0.98] transition-all min-h-[44px]"
+                  className="w-full py-3 bg-navy text-white rounded-xl font-medium hover:bg-navy-light active:scale-[0.98] transition-all min-h-[44px] cursor-pointer"
                 >
                   Mark as Complete
                 </button>

@@ -19,7 +19,7 @@ export default function AppShell({ children }: AppShellProps) {
         <div className="lg:hidden flex items-center px-4 pt-2">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="p-2 -ml-2 rounded-xl hover:bg-stone-100 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="p-2 -ml-2 rounded-xl hover:bg-stone-100 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
             aria-label="Open menu"
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-navy">

@@ -20,13 +20,6 @@ function parseDate(dateStr: string): Date {
   return new Date(y, m - 1, d);
 }
 
-function daysBetween(a: Date, b: Date): number {
-  const msPerDay = 1000 * 60 * 60 * 24;
-  const aStart = new Date(a.getFullYear(), a.getMonth(), a.getDate());
-  const bStart = new Date(b.getFullYear(), b.getMonth(), b.getDate());
-  return Math.round((bStart.getTime() - aStart.getTime()) / msPerDay);
-}
-
 function countNonShabbatDays(from: Date, to: Date): number {
   let count = 0;
   const current = new Date(from);

@@ -65,7 +65,7 @@ export default function CelebrationModal() {
 
           <button
             onClick={dismissCelebration}
-            className="px-8 py-3 bg-navy text-white rounded-xl font-medium hover:bg-navy-light active:scale-[0.98] transition-all min-h-[44px]"
+            className="px-8 py-3 bg-navy text-white rounded-xl font-medium hover:bg-navy-light active:scale-[0.98] transition-all min-h-11 cursor-pointer"
           >
             Continue
           </button>

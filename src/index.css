@@ -1,9 +1,9 @@
 @import "tailwindcss";
 
 @theme {
-  --color-navy: #1a1a2e;
-  --color-navy-light: #252547;
-  --color-navy-dark: #12121f;
+  --color-navy: #0E3470;
+  --color-navy-light: #1a4a8a;
+  --color-navy-dark: #0a2554;
   --color-gold: #d4a843;
   --color-gold-light: #e8c96a;
   --color-teal: #2dd4bf;
@@ -73,7 +73,7 @@ body {
   padding: 16px;
   border-radius: 12px;
   font-weight: 700;
-  color: white;
+  color: #0E3470;
   font-size: 18px;
   background-color: #BC9C45;
   border: none;
@@ -105,3 +105,4 @@ body {
   padding-left: 16px;
   margin-bottom: 24px;
 }
+

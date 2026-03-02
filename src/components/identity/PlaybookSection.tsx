@@ -1,20 +1,18 @@
-import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import type { PlaybookSection as PlaybookSectionType } from "../../store/types";
 
 interface PlaybookSectionProps {
   section: PlaybookSectionType;
-  defaultOpen?: boolean;
+  open: boolean;
+  onToggle: () => void;
 }
 
-export default function PlaybookSection({ section, defaultOpen = true }: PlaybookSectionProps) {
-  const [open, setOpen] = useState(defaultOpen);
-
+export default function PlaybookSection({ section, open, onToggle }: PlaybookSectionProps) {
   return (
     <div className="ie-playbook-section">
       <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between py-2 text-left min-h-[44px]"
+        onClick={onToggle}
+        className="w-full flex items-center justify-between py-2 text-left min-h-[44px] cursor-pointer"
       >
         <h3 className="font-semibold text-navy text-base">{section.title}</h3>
         <svg

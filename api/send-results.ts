@@ -1,13 +1,23 @@
 import { Resend } from "resend";
+import { log } from "./_logger";
 
-const TEAM_EMAILS = ["g@reprime.com", "steve@reprime.com"];
-const MUSHKA_EMAIL = "mushka@gratsiani.com";
-const FROM_ADDRESS = "noreply@reprime.com";
+const TEAM_EMAILS = [
+  "ubaid@impleko.ai",
+  // "g@reprime.com",
+  // "amelia@reprime.com",
+  // "dcyg770@gmail.com",
+  // "shirel@reprime.com",
+  // "steve@reprime.com",
+];
+
+// const MUSHKA_EMAIL = "mushka@gratsiani.com";
+const MUSHKA_EMAIL = "devsalmansidd@gmail.com";
+const FROM_ADDRESS = "notifications@meetreprime.com";
 
 function validityEmoji(status: string): string {
-  if (status === "green") return "\u{1F7E2}";
-  if (status === "yellow") return "\u{1F7E1}";
-  return "\u{1F534}";
+  if (status === "green") return "🟢";
+  if (status === "yellow") return "🟡";
+  return "🔴";
 }
 
 function buildTeamEmail(data: any): string {
@@ -15,10 +25,13 @@ function buildTeamEmail(data: any): string {
 
   const scoreRows = Object.entries(scores as Record<string, any>)
     .map(([key, score]: [string, any]) => {
-      const percentile = score.percentile != null ? `${score.percentile}%` : "N/A (criterion)";
+      const percentile =
+        score.percentile != null ? `${score.percentile}%` : "N/A (criterion)";
       const level = score.level || "";
       const subscales = score.subscales
-        ? Object.entries(score.subscales).map(([k, v]) => `${k}: ${v}`).join(", ")
+        ? Object.entries(score.subscales)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join(", ")
         : "";
       return `<tr>
         <td style="padding:8px;border:1px solid #e5e5e5;font-weight:600;">${key}</td>
@@ -34,10 +47,15 @@ function buildTeamEmail(data: any): string {
     ...((validity.consistencyDetails as string[]) || []),
     ...((validity.infrequencyDetails as string[]) || []),
     ...((validity.fastResponseDetails as string[]) || []),
-  ].map((d: string) => `<li>${d}</li>`).join("");
+  ]
+    .map((d: string) => `<li>${d}</li>`)
+    .join("");
 
   const playbookHtml = (playbook || [])
-    .map((s: any) => `<h3 style="color:#0E3470;margin-top:16px;">${s.title}</h3><p>${s.content}</p>`)
+    .map(
+      (s: any) =>
+        `<h3 style="color:#0E3470;margin-top:16px;">${s.title}</h3><p>${s.content}</p>`,
+    )
     .join("");
 
   const responseTimeSummary = responses
@@ -52,7 +70,7 @@ table{border-collapse:collapse;width:100%;margin:12px 0;}
 th{background:#0E3470;color:white;padding:8px;text-align:left;border:1px solid #0E3470;}
 td{padding:8px;border:1px solid #e5e5e5;}
 </style></head><body>
-<h1>Identity Engine Results \u2014 Mushka Gratsiani</h1>
+<h1>Identity Engine Results — Mushka Gratsiani</h1>
 
 <h2>Validity ${validityEmoji(validity.status)} ${validity.status.toUpperCase()}</h2>
 <p>Consistency flags: ${validity.consistencyFlags} | Infrequency flags: ${validity.infrequencyFlags} | Fast response flags: ${validity.fastResponseFlags}</p>
@@ -77,30 +95,46 @@ ${scoreRows}
 ${playbookHtml || "<p>Playbook generation pending.</p>"}
 
 <hr style="border:none;border-top:1px solid #e5e5e5;margin-top:30px;">
-<p style="font-size:12px;color:#999;">Mushka AI Portal \u2014 Identity Engine \u2014 RePrime Group</p>
+<p style="font-size:12px;color:#999;">Mushka AI Portal — Identity Engine — RePrime Group</p>
 </body></html>`;
 }
 
-export default async function handler(req: any): Promise<any> {
+export default async function handler(req: any, res: any) {
   if (req.method !== "POST") {
-    return { status: 405, body: "Method not allowed" };
+    log("send-results", "method_not_allowed", { method: req.method }, "WARN");
+    return res.status(405).send("Method not allowed");
   }
 
+  log("send-results", "request_received", {
+    validityStatus: req.body?.validity?.status,
+    playbookSections: Array.isArray(req.body?.playbook)
+      ? req.body.playbook.length
+      : 0,
+  });
+
   try {
-    const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+    const body = req.body;
     const resend = new Resend(process.env.RESEND_API_KEY);
     const results: any[] = [];
 
     // Team email — FULL DATA
+    const t0 = Date.now();
     const teamResult = await resend.emails.send({
       from: FROM_ADDRESS,
       to: TEAM_EMAILS,
-      subject: `\u{1F4CA} Identity Engine Complete \u2014 Mushka Gratsiani ${validityEmoji(body.validity?.status || "green")}`,
+      subject: `📊 Identity Engine Complete — Mushka Gratsiani ${validityEmoji(body.validity?.status || "green")}`,
       html: buildTeamEmail(body),
+    });
+    log("send-results", "team_email_sent", {
+      durationMs: Date.now() - t0,
+      to: TEAM_EMAILS,
+      id: (teamResult as any)?.data?.id,
+      error: (teamResult as any)?.error ?? null,
     });
     results.push({ type: "team", result: teamResult });
 
-    // Mushka email — WARM MESSAGE ONLY
+    // Mushka email — WARM MESSAGE ONLY, zero scores/data
+    const t1 = Date.now();
     const mushkaResult = await resend.emails.send({
       from: FROM_ADDRESS,
       to: [MUSHKA_EMAIL],
@@ -113,22 +147,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;c
 <p>Your Personal Operating Playbook is ready. Open the Identity Engine to explore your results and see how your AI training will be personalized for you.</p>
 <p>This is the first step in your journey as Head of AI Research at RePrime Group.</p>
 <hr style="border:none;border-top:1px solid #e5e5e5;margin-top:30px;">
-<p style="font-size:12px;color:#999;">Mushka AI Portal \u2014 RePrime Group</p>
+<p style="font-size:12px;color:#999;">Mushka AI Portal — RePrime Group</p>
 </body></html>`,
+    });
+    log("send-results", "mushka_email_sent", {
+      durationMs: Date.now() - t1,
+      to: MUSHKA_EMAIL,
+      id: (mushkaResult as any)?.data?.id,
+      error: (mushkaResult as any)?.error ?? null,
     });
     results.push({ type: "mushka", result: mushkaResult });
 
-    return {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sent: results.length, results }),
-    };
+    log("send-results", "success", { sent: results.length });
+    return res.status(200).json({ sent: results.length, results });
   } catch (err: any) {
-    console.error("Results email failed:", err?.message || err);
-    return {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ error: "Email send failed" }),
-    };
+    log("send-results", "error", { message: err?.message }, "ERROR");
+    return res.status(500).json({ error: "Email send failed" });
   }
 }

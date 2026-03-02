@@ -50,7 +50,7 @@ export default function ReflectionForm({
         <button
           type="submit"
           disabled={text.trim().length < 20 || isSubmitting}
-          className="px-6 py-2.5 bg-navy text-white rounded-xl font-medium hover:bg-navy-light active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed min-h-[44px]"
+          className="px-6 py-2.5 bg-navy text-white rounded-xl font-medium hover:bg-navy-light active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer min-h-11"
         >
           {isSubmitting ? (
             <span className="flex items-center gap-2">
