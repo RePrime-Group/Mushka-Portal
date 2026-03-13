@@ -1,5 +1,6 @@
 interface EmailTriggerPayload {
   trigger: string;
+  userEmail: string;
   stageId?: number;
   tasksCompleted?: number;
   currentStreak?: number;

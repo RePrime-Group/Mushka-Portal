@@ -137,7 +137,7 @@ export default function IdentityEngine({ onComplete }: IdentityEngineProps) {
       await fetch("/api/send-results", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scores, domainScores, validity, playbook, responses }),
+        body: JSON.stringify({ scores, domainScores, validity, playbook, responses, userEmail: useAppStore.getState().email }),
       });
     } catch {
       console.error("Results email failed — non-blocking");

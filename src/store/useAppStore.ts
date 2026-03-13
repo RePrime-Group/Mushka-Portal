@@ -82,7 +82,7 @@ export const useAppStore = create<AppState & AppActions>()(
         const state = get();
         set({ isLoggedIn: true, email });
         if (!state.programStartEmailSent) {
-          triggerEmail({ trigger: "program-start" });
+          triggerEmail({ trigger: "program-start", userEmail: email });
           set({ programStartEmailSent: true });
         }
       },
@@ -166,10 +166,13 @@ export const useAppStore = create<AppState & AppActions>()(
         // Email triggers
         const completedInStage = countStageCompletedTasks(updatedStage);
 
+        const userEmail = get().email;
+
         // Stage 1 halfway (task 3 of 5)
         if (stageId === 1 && completedInStage === 3) {
           triggerEmail({
             trigger: "stage-1-halfway",
+            userEmail,
             stageId: 1,
             tasksCompleted: completedInStage,
             currentStreak: newStreak.currentStreak,
@@ -180,6 +183,7 @@ export const useAppStore = create<AppState & AppActions>()(
         if (stageId === 1 && stageNowComplete) {
           triggerEmail({
             trigger: "stage-1-complete",
+            userEmail,
             stageId: 1,
             tasksCompleted: 5,
             totalXP: newXP,
@@ -190,6 +194,7 @@ export const useAppStore = create<AppState & AppActions>()(
         if (stageId === 3 && completedInStage === 3) {
           triggerEmail({
             trigger: "stage-3-halfway",
+            userEmail,
             stageId: 3,
             tasksCompleted: completedInStage,
             currentStreak: newStreak.currentStreak,
@@ -200,6 +205,7 @@ export const useAppStore = create<AppState & AppActions>()(
         if (stageId === 3 && stageNowComplete) {
           triggerEmail({
             trigger: "stage-3-complete",
+            userEmail,
             stageId: 3,
             tasksCompleted: 5,
             totalXP: newXP,
@@ -211,6 +217,7 @@ export const useAppStore = create<AppState & AppActions>()(
         if (allComplete) {
           triggerEmail({
             trigger: "all-complete",
+            userEmail,
             totalXP: newXP,
             tasksCompleted: totalCompleted,
           });
