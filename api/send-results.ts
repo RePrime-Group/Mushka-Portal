@@ -2,14 +2,14 @@ import { Resend } from "resend";
 import { log } from "./_logger.js";
 
 const TEAM_EMAILS = [
-  "g@reprime.com",
-  "amelia@reprime.com",
-  "dcyg770@gmail.com",
-  "shirel@reprime.com",
-  "steve@reprime.com",
+  // "g@reprime.com",
+  // "amelia@reprime.com",
+  // "dcyg770@gmail.com",
+  // "shirel@reprime.com",
+  // "steve@reprime.com",
+  "usman@impleko.ai"
 ];
 
-const MUSHKA_EMAIL = "mushka@gratsiani.com";
 const FROM_ADDRESS = "notifications@meetreprime.com";
 
 function validityEmoji(status: string): string {
@@ -112,6 +112,13 @@ export default async function handler(req: any, res: any) {
 
   try {
     const body = req.body;
+    const { userEmail } = body;
+
+    if (!userEmail || typeof userEmail !== "string") {
+      log("send-results", "missing_user_email", {}, "WARN");
+      return res.status(400).json({ error: "Missing userEmail" });
+    }
+
     const resend = new Resend(process.env.RESEND_API_KEY);
     const results: any[] = [];
 
@@ -131,30 +138,29 @@ export default async function handler(req: any, res: any) {
     });
     results.push({ type: "team", result: teamResult });
 
-    // Mushka email — WARM MESSAGE ONLY, zero scores/data
+    // User email — WARM MESSAGE ONLY, zero scores/data
     const t1 = Date.now();
-    const mushkaResult = await resend.emails.send({
+    const userResult = await resend.emails.send({
       from: FROM_ADDRESS,
-      to: [MUSHKA_EMAIL],
+      to: [userEmail],
       subject: "Your Personal Operating Playbook is ready",
       html: `<!DOCTYPE html>
 <html><head><style>
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1a1a2e;line-height:1.6;padding:20px;max-width:600px;margin:0 auto;}
 </style></head><body>
-<p>Hi Mushka,</p>
+<p>Hi,</p>
 <p>Your Personal Operating Playbook is ready. Open the Identity Engine to explore your results and see how your AI training will be personalized for you.</p>
-<p>This is the first step in your journey as Head of AI Research at RePrime Group.</p>
 <hr style="border:none;border-top:1px solid #e5e5e5;margin-top:30px;">
 <p style="font-size:12px;color:#999;">Mushka AI Portal — RePrime Group</p>
 </body></html>`,
     });
-    log("send-results", "mushka_email_sent", {
+    log("send-results", "user_email_sent", {
       durationMs: Date.now() - t1,
-      to: MUSHKA_EMAIL,
-      id: (mushkaResult as any)?.data?.id,
-      error: (mushkaResult as any)?.error ?? null,
+      to: userEmail,
+      id: (userResult as any)?.data?.id,
+      error: (userResult as any)?.error ?? null,
     });
-    results.push({ type: "mushka", result: mushkaResult });
+    results.push({ type: "user", result: userResult });
 
     log("send-results", "success", { sent: results.length });
     return res.status(200).json({ sent: results.length, results });

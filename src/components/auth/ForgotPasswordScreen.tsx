@@ -1,20 +1,15 @@
 import { useState } from "react";
 import { motion } from "motion/react";
-import { setToken } from "../../lib/auth";
-import { useAppStore } from "../../store/useAppStore";
 
 interface Props {
-  onForgot: () => void;
-  onSignUp: () => void;
+  onSignIn: () => void;
 }
 
-export default function LoginScreen({ onForgot, onSignUp }: Props) {
+export default function ForgotPasswordScreen({ onSignIn }: Props) {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showWelcome, setShowWelcome] = useState(false);
-  const login = useAppStore((s) => s.login);
+  const [sent, setSent] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -22,24 +17,20 @@ export default function LoginScreen({ onForgot, onSignUp }: Props) {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/auth/signin", {
+      const res = await fetch("/api/auth/forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.toLowerCase().trim(), password }),
+        body: JSON.stringify({ email: email.toLowerCase().trim() }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error ?? "Invalid email or password");
+        setError(data.error ?? "Something went wrong. Please try again.");
         return;
       }
 
-      setToken(data.token);
-      setShowWelcome(true);
-      setTimeout(() => {
-        login(data.email);
-      }, 1500);
+      setSent(true);
     } catch {
       setError("Connection error. Please try again.");
     } finally {
@@ -47,17 +38,31 @@ export default function LoginScreen({ onForgot, onSignUp }: Props) {
     }
   }
 
-  if (showWelcome) {
+  if (sent) {
     return (
-      <div className="min-h-dvh flex items-center justify-center bg-navy">
+      <div className="min-h-dvh flex items-center justify-center bg-navy px-4">
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6 }}
-          className="text-center"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="w-full max-w-sm"
         >
-          <h1 className="text-4xl font-bold text-gold mb-2">Welcome back!</h1>
-          <p className="text-white/60 text-lg">Let's continue your AI journey</p>
+          <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
+            <div className="w-16 h-16 bg-navy rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <span className="text-gold text-2xl">✉</span>
+            </div>
+            <h2 className="text-xl font-bold text-navy mb-2">Check your email</h2>
+            <p className="text-warm-gray text-sm leading-relaxed mb-6">
+              If an account exists for <strong className="text-navy">{email}</strong>, a password
+              reset link has been sent. The link expires in 1 hour.
+            </p>
+            <button
+              onClick={onSignIn}
+              className="w-full py-3 bg-navy text-white rounded-xl font-medium hover:bg-navy-light active:scale-[0.98] transition-all min-h-[44px] cursor-pointer"
+            >
+              Back to Sign In
+            </button>
+          </div>
         </motion.div>
       </div>
     );
@@ -76,8 +81,10 @@ export default function LoginScreen({ onForgot, onSignUp }: Props) {
             <div className="w-16 h-16 bg-navy rounded-2xl flex items-center justify-center mx-auto mb-4">
               <span className="text-gold text-2xl font-bold">M</span>
             </div>
-            <h1 className="text-2xl font-bold text-navy">Mushka AI Portal</h1>
-            <p className="text-warm-gray text-sm mt-1">RePrime Group</p>
+            <h1 className="text-2xl font-bold text-navy">Forgot Password</h1>
+            <p className="text-warm-gray text-sm mt-1">
+              Enter your email to receive a reset link
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -92,30 +99,6 @@ export default function LoginScreen({ onForgot, onSignUp }: Props) {
                 className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-cream text-navy placeholder-warm-gray/50 focus:outline-none focus:ring-2 focus:ring-gold/50 focus:border-gold transition-all"
                 placeholder="your@email.com"
                 autoComplete="email"
-                required
-              />
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-sm font-medium text-navy">
-                  Password
-                </label>
-                <button
-                  type="button"
-                  onClick={onForgot}
-                  className="text-xs text-warm-gray hover:text-navy transition-colors cursor-pointer"
-                >
-                  Forgot password?
-                </button>
-              </div>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-cream text-navy placeholder-warm-gray/50 focus:outline-none focus:ring-2 focus:ring-gold/50 focus:border-gold transition-all"
-                placeholder="Enter password"
-                autoComplete="current-password"
                 required
               />
             </div>
@@ -135,17 +118,17 @@ export default function LoginScreen({ onForgot, onSignUp }: Props) {
               disabled={loading}
               className="w-full py-3 bg-navy text-white rounded-xl font-medium hover:bg-navy-light active:scale-[0.98] transition-all min-h-[44px] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {loading ? "Signing in…" : "Sign In"}
+              {loading ? "Sending…" : "Send Reset Link"}
             </button>
           </form>
 
           <p className="text-center text-sm text-warm-gray mt-6">
-            Don't have an account?{" "}
+            Remember your password?{" "}
             <button
-              onClick={onSignUp}
+              onClick={onSignIn}
               className="text-navy font-medium hover:underline cursor-pointer"
             >
-              Create one
+              Sign in
             </button>
           </p>
         </div>

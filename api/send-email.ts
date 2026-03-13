@@ -2,14 +2,14 @@ import { Resend } from "resend";
 import { log } from "./_logger.js";
 
 const TEAM_EMAILS = [
-  "g@reprime.com",
-  "amelia@reprime.com",
-  "dcyg770@gmail.com",
-  "shirel@reprime.com",
-  "steve@reprime.com",
+  // "g@reprime.com",
+  // "amelia@reprime.com",
+  // "dcyg770@gmail.com",
+  // "shirel@reprime.com",
+  // "steve@reprime.com",
+  "usman@impleko.ai"
 ];
 
-const MUSHKA_EMAIL = "mushka@gratsiani.com";
 const FROM_ADDRESS = "notifications@meetreprime.com";
 
 interface EmailContent {
@@ -132,11 +132,16 @@ export default async function handler(req: any, res: any) {
 
   try {
     const body = req.body;
-    const { trigger, ...data } = body;
+    const { trigger, userEmail, ...data } = body;
 
     if (!trigger) {
       log("send-email", "missing_trigger", {}, "WARN");
       return res.status(400).json({ error: "Missing trigger" });
+    }
+
+    if (!userEmail || typeof userEmail !== "string") {
+      log("send-email", "missing_user_email", {}, "WARN");
+      return res.status(400).json({ error: "Missing userEmail" });
     }
 
     log("send-email", "request_received", { trigger });
@@ -166,21 +171,21 @@ export default async function handler(req: any, res: any) {
 
     if (content.mushkaSubject && content.mushkaBody) {
       const t1 = Date.now();
-      const mushkaResult = await resend.emails.send({
+      const userResult = await resend.emails.send({
         from: FROM_ADDRESS,
-        to: [MUSHKA_EMAIL],
+        to: [userEmail],
         subject: content.mushkaSubject,
         html: wrapHtml(content.mushkaBody),
       });
-      log("send-email", "mushka_email_sent", {
+      log("send-email", "user_email_sent", {
         trigger,
         durationMs: Date.now() - t1,
-        to: MUSHKA_EMAIL,
+        to: userEmail,
         subject: content.mushkaSubject,
-        id: (mushkaResult as any)?.data?.id,
-        error: (mushkaResult as any)?.error ?? null,
+        id: (userResult as any)?.data?.id,
+        error: (userResult as any)?.error ?? null,
       });
-      results.push({ type: "mushka", result: mushkaResult });
+      results.push({ type: "user", result: userResult });
     }
 
     log("send-email", "success", { trigger, sent: results.length });
