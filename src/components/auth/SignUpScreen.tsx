@@ -4,13 +4,13 @@ import { setToken } from "../../lib/auth";
 import { useAppStore } from "../../store/useAppStore";
 
 interface Props {
-  onForgot: () => void;
-  onSignUp: () => void;
+  onSignIn: () => void;
 }
 
-export default function LoginScreen({ onForgot, onSignUp }: Props) {
+export default function SignUpScreen({ onSignIn }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
@@ -19,10 +19,20 @@ export default function LoginScreen({ onForgot, onSignUp }: Props) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    setLoading(true);
 
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters");
+      return;
+    }
+
+    setLoading(true);
     try {
-      const res = await fetch("/api/auth/signin", {
+      const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.toLowerCase().trim(), password }),
@@ -31,7 +41,7 @@ export default function LoginScreen({ onForgot, onSignUp }: Props) {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error ?? "Invalid email or password");
+        setError(data.error ?? "Sign up failed. Please try again.");
         return;
       }
 
@@ -56,8 +66,8 @@ export default function LoginScreen({ onForgot, onSignUp }: Props) {
           transition={{ duration: 0.6 }}
           className="text-center"
         >
-          <h1 className="text-4xl font-bold text-gold mb-2">Welcome back!</h1>
-          <p className="text-white/60 text-lg">Let's continue your AI journey</p>
+          <h1 className="text-4xl font-bold text-gold mb-2">Welcome!</h1>
+          <p className="text-white/60 text-lg">Let's begin your AI journey</p>
         </motion.div>
       </div>
     );
@@ -76,8 +86,8 @@ export default function LoginScreen({ onForgot, onSignUp }: Props) {
             <div className="w-16 h-16 bg-navy rounded-2xl flex items-center justify-center mx-auto mb-4">
               <span className="text-gold text-2xl font-bold">M</span>
             </div>
-            <h1 className="text-2xl font-bold text-navy">Mushka AI Portal</h1>
-            <p className="text-warm-gray text-sm mt-1">RePrime Group</p>
+            <h1 className="text-2xl font-bold text-navy">Create Account</h1>
+            <p className="text-warm-gray text-sm mt-1">Mushka AI Portal</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -97,25 +107,31 @@ export default function LoginScreen({ onForgot, onSignUp }: Props) {
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-sm font-medium text-navy">
-                  Password
-                </label>
-                <button
-                  type="button"
-                  onClick={onForgot}
-                  className="text-xs text-warm-gray hover:text-navy transition-colors cursor-pointer"
-                >
-                  Forgot password?
-                </button>
-              </div>
+              <label className="block text-sm font-medium text-navy mb-1.5">
+                Password
+              </label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-cream text-navy placeholder-warm-gray/50 focus:outline-none focus:ring-2 focus:ring-gold/50 focus:border-gold transition-all"
-                placeholder="Enter password"
-                autoComplete="current-password"
+                placeholder="At least 8 characters"
+                autoComplete="new-password"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-navy mb-1.5">
+                Confirm Password
+              </label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-stone-200 bg-cream text-navy placeholder-warm-gray/50 focus:outline-none focus:ring-2 focus:ring-gold/50 focus:border-gold transition-all"
+                placeholder="Repeat your password"
+                autoComplete="new-password"
                 required
               />
             </div>
@@ -135,17 +151,17 @@ export default function LoginScreen({ onForgot, onSignUp }: Props) {
               disabled={loading}
               className="w-full py-3 bg-navy text-white rounded-xl font-medium hover:bg-navy-light active:scale-[0.98] transition-all min-h-[44px] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {loading ? "Signing in…" : "Sign In"}
+              {loading ? "Creating account…" : "Create Account"}
             </button>
           </form>
 
           <p className="text-center text-sm text-warm-gray mt-6">
-            Don't have an account?{" "}
+            Already have an account?{" "}
             <button
-              onClick={onSignUp}
+              onClick={onSignIn}
               className="text-navy font-medium hover:underline cursor-pointer"
             >
-              Create one
+              Sign in
             </button>
           </p>
         </div>

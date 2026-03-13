@@ -5,6 +5,7 @@ import { stages, getTaskXP, celebrationMessages } from "../data/curriculum";
 import { updateStreak } from "../utils/streak";
 import { didTitleChange } from "../utils/xp";
 import { triggerEmail } from "../utils/email";
+import { clearToken } from "../lib/auth";
 
 const initialAssessmentState: AssessmentState = {
   started: false,
@@ -86,7 +87,10 @@ export const useAppStore = create<AppState & AppActions>()(
         }
       },
 
-      logout: () => set({ isLoggedIn: false, email: "" }),
+      logout: () => {
+        clearToken();
+        set({ isLoggedIn: false, email: "" });
+      },
 
       resetProgress: () =>
         set({
